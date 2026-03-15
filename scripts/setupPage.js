@@ -1,5 +1,6 @@
 import { getActivePortfolio, updateActivePortfolio } from './state.js';
 import { byId, setText, setHTML } from './dom.js';
+import { validateAndParseNumber, showInputError, hideInputError } from './validation.js';
 
 function esc(s) {
   return (s || '')
@@ -67,6 +68,18 @@ function onTableInput(ev) {
   if (!tr) return;
   const id = Number(tr.dataset.id);
   if (!id) return;
+
+  if (field === 'tgt') {
+    // Validate target percentage
+    const validation = validateAndParseNumber(target.value, { min: 0, max: 100 });
+    
+    if (!validation.isValid) {
+      showInputError(target, validation.error, validation.suggestedValue);
+      return;
+    }
+    
+    hideInputError(target);
+  }
 
   updateActivePortfolio(prev => {
     const etfs = prev.etfs.map(e => {
@@ -147,6 +160,16 @@ export function initSetupPage() {
   const addRiskFree = byId('add-riskfree');
 
   rpInput?.addEventListener('input', () => {
+    // Validate risk percentage
+    const validation = validateAndParseNumber(rpInput.value, { min: 0, max: 100 });
+    
+    if (!validation.isValid) {
+      showInputError(rpInput, validation.error, validation.suggestedValue);
+      return;
+    }
+    
+    hideInputError(rpInput);
+    
     const raw = parseFloat(rpInput.value) || 0;
     const pct = Math.min(100, Math.max(0, raw));
     const frac = pct / 100;
@@ -155,6 +178,16 @@ export function initSetupPage() {
   });
 
   diInput?.addEventListener('change', () => {
+    // Validate default investment
+    const validation = validateAndParseNumber(diInput.value, { min: 0 });
+    
+    if (!validation.isValid) {
+      showInputError(diInput, validation.error, validation.suggestedValue);
+      return;
+    }
+    
+    hideInputError(diInput);
+    
     const v = parseFloat(diInput.value) || 0;
     updateActivePortfolio(prev => ({ ...prev, di: v }));
   });

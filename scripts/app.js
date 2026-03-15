@@ -7,6 +7,7 @@ import { optimizeAllocation } from './optimizer.js';
 import { renderResultsPage } from './resultsPage.js';
 import { initPortfolioBar, renderPortfolioBar } from './portfolioBar.js';
 import { initImportExport } from './importExport.js';
+import { validateAndParseNumber } from './validation.js';
 
 function goToSetup() {
   showPage(1);
@@ -38,9 +39,9 @@ async function onFetchAndCalculate() {
   
   // Validate investment amount format
   if (ia) {
-    const validation = validateNumberInput(ia.value);
+    const validation = validateAndParseNumber(ia.value, { min: 0 });
     if (!validation.isValid) {
-      alert('Please correct the investment amount format: ' + validation.error);
+      alert('Please correct the investment amount: ' + validation.error);
       ia.focus();
       return;
     }
@@ -68,38 +69,6 @@ async function onFetchAndCalculate() {
     if (btn) btn.disabled = false;
     if (sp) sp.style.display = 'none';
   }
-}
-
-function validateNumberInput(input) {
-  const value = input.trim();
-  
-  // Check if the input contains comma as decimal separator
-  if (value.includes(',') && !value.includes('.')) {
-    const commaCount = (value.match(/,/g) || []).length;
-    if (commaCount === 1) {
-      const parts = value.split(',');
-      if (parts.length === 2 && parts[1].length <= 2) {
-        return {
-          isValid: false,
-          error: 'use point (.) instead of comma (,) as decimal separator'
-        };
-      }
-    }
-  }
-  
-  // Check if it's a valid number format
-  const parsed = parseFloat(value);
-  if (isNaN(parsed)) {
-    return {
-      isValid: false,
-      error: 'enter a valid number'
-    };
-  }
-  
-  return {
-    isValid: true,
-    error: null
-  };
 }
 
 function initNav() {
