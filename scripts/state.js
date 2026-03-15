@@ -18,8 +18,9 @@ const DEF = {
 };
 
 const STORAGE_KEY = 'etf_reb_v5';
+const MAX_PORTFOLIOS = 5;
 
-function loadStateFromStorage() {
+function loadRawFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -28,16 +29,10 @@ function loadStateFromStorage() {
   }
 }
 
-export function saveStateToStorage(state) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // ignore
-  }
-}
-
-export function createDefaultState() {
+export function createDefaultPortfolio(id = 'p1', name = 'Main') {
   return {
+    id,
+    name,
     etfs: DEF.etfs.map(e => ({ ...e })),
     rp: DEF.riskPct,
     di: DEF.defInv,
@@ -48,20 +43,131 @@ export function createDefaultState() {
   };
 }
 
-let state = loadStateFromStorage() || createDefaultState();
+function migrateLegacy(raw) {
+  // Legacy shape looks like a single portfolio: has etfs/rp/di etc., but no portfolios array
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (Array.isArray(raw.portfolios)) {
+    return raw;
+  }
+  if (Array.isArray(raw.etfs)) {
+    const portfolio = {
+      id: 'p1',
+      name: 'Main',
+      etfs: raw.etfs,
+      rp: raw.rp ?? DEF.riskPct,
+      di: raw.di ?? DEF.defInv,
+      nid: raw.nid ?? 20,
+      mode: raw.mode ?? 'onetime',
+      inv: raw.inv ?? DEF.defInv,
+      h: raw.h ?? {}
+    };
+    return {
+      portfolios: [portfolio],
+      activePortfolioId: 'p1'
+    };
+  }
+  return null;
+}
+
+function createInitialAppState() {
+  const raw = loadRawFromStorage();
+  if (!raw) {
+    const p = createDefaultPortfolio('p1', 'Main');
+    return { portfolios: [p], activePortfolioId: 'p1' };
+  }
+  if (Array.isArray(raw.portfolios) && raw.activePortfolioId) {
+    return raw;
+  }
+  const migrated = migrateLegacy(raw);
+  if (migrated) {
+    return migrated;
+  }
+  const p = createDefaultPortfolio('p1', 'Main');
+  return { portfolios: [p], activePortfolioId: 'p1' };
+}
+
+export function saveStateToStorage(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // ignore
+  }
+}
+
+let appState = createInitialAppState();
 
 export function getState() {
-  return state;
+  return appState;
 }
 
 export function setState(updater) {
-  const next = typeof updater === 'function' ? updater(state) : updater;
-  state = next;
-  saveStateToStorage(state);
-  return state;
+  const next = typeof updater === 'function' ? updater(appState) : updater;
+  appState = next;
+  saveStateToStorage(appState);
+  return appState;
 }
 
 export function updateState(patch) {
   return setState(prev => ({ ...prev, ...patch }));
+}
+
+export function getActivePortfolio() {
+  const { portfolios, activePortfolioId } = appState;
+  let p = portfolios.find(pf => pf.id === activePortfolioId);
+  if (!p) {
+    p = portfolios[0] || createDefaultPortfolio('p1', 'Main');
+  }
+  return p;
+}
+
+export function updateActivePortfolio(updater) {
+  return setState(prev => {
+    const current = getActivePortfolio();
+    const nextPortfolio =
+      typeof updater === 'function' ? updater(current) : updater;
+    const portfolios = prev.portfolios.map(p =>
+      p.id === current.id ? nextPortfolio : p
+    );
+    return { ...prev, portfolios };
+  });
+}
+
+export function addPortfolio(name) {
+  return setState(prev => {
+    if (prev.portfolios.length >= MAX_PORTFOLIOS) return prev;
+    const idx = prev.portfolios.length + 1;
+    const id = `p${idx}`;
+    const portfolio = createDefaultPortfolio(id, name || `Portfolio ${idx}`);
+    const portfolios = [...prev.portfolios, portfolio];
+    return { ...prev, portfolios, activePortfolioId: id };
+  });
+}
+
+export function removePortfolio(id) {
+  return setState(prev => {
+    if (prev.portfolios.length <= 1) return prev;
+    const portfolios = prev.portfolios.filter(p => p.id !== id);
+    let activePortfolioId = prev.activePortfolioId;
+    if (!portfolios.find(p => p.id === activePortfolioId)) {
+      activePortfolioId = portfolios[0]?.id || '';
+    }
+    return { ...prev, portfolios, activePortfolioId };
+  });
+}
+
+export function renamePortfolio(id, name) {
+  return setState(prev => {
+    const portfolios = prev.portfolios.map(p =>
+      p.id === id ? { ...p, name: name || p.name } : p
+    );
+    return { ...prev, portfolios };
+  });
+}
+
+export function setActivePortfolio(id) {
+  return setState(prev => {
+    if (!prev.portfolios.find(p => p.id === id)) return prev;
+    return { ...prev, activePortfolioId: id };
+  });
 }
 

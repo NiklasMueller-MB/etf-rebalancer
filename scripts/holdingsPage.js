@@ -1,8 +1,8 @@
-import { getState, updateState } from './state.js';
+import { getActivePortfolio, updateActivePortfolio } from './state.js';
 import { byId, setHTML } from './dom.js';
 
 function renderHoldingsTable() {
-  const state = getState();
+  const state = getActivePortfolio();
   const all = [...state.etfs.filter(e => !e.rf), ...state.etfs.filter(e => e.rf)];
   const rows = all.map(e => {
     const held = state.h[e.id] || 0;
@@ -20,7 +20,7 @@ function renderHoldingsTable() {
 }
 
 export function renderHoldingsPage() {
-  const state = getState();
+  const state = getActivePortfolio();
   setMode(state.mode);
   const ia = byId('ia');
   if (ia) ia.value = state.inv;
@@ -47,18 +47,18 @@ export function initHoldingsPage() {
   const hb = byId('hb');
 
   to?.addEventListener('click', () => {
-    updateState(prev => ({ ...prev, mode: 'onetime' }));
+    updateActivePortfolio(prev => ({ ...prev, mode: 'onetime' }));
     setMode('onetime');
   });
 
   ts?.addEventListener('click', () => {
-    updateState(prev => ({ ...prev, mode: 'savings' }));
+    updateActivePortfolio(prev => ({ ...prev, mode: 'savings' }));
     setMode('savings');
   });
 
   ia?.addEventListener('change', () => {
     const v = parseFloat(ia.value) || 0;
-    updateState(prev => ({ ...prev, inv: v }));
+    updateActivePortfolio(prev => ({ ...prev, inv: v }));
   });
 
   hb?.addEventListener('change', ev => {
@@ -70,7 +70,7 @@ export function initHoldingsPage() {
     const id = Number(tr.dataset.id);
     if (!id) return;
     const value = parseFloat(target.value) || 0;
-    updateState(prev => {
+    updateActivePortfolio(prev => {
       const h = { ...prev.h, [id]: value };
       return { ...prev, h };
     });

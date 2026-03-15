@@ -1,4 +1,4 @@
-import { getState, updateState } from './state.js';
+import { getActivePortfolio, updateActivePortfolio } from './state.js';
 import { byId, setText, setHTML } from './dom.js';
 
 function esc(s) {
@@ -29,7 +29,7 @@ function riskFreeRow(e) {
 }
 
 export function renderSetupPage() {
-  const state = getState();
+  const state = getActivePortfolio();
   const rpPct = Math.round(state.rp * 100);
   byId('rp').value = rpPct;
   setText('sp', Math.round((1 - state.rp) * 100));
@@ -68,7 +68,7 @@ function onTableInput(ev) {
   const id = Number(tr.dataset.id);
   if (!id) return;
 
-  updateState(prev => {
+  updateActivePortfolio(prev => {
     const etfs = prev.etfs.map(e => {
       if (e.id !== id) return e;
       let value;
@@ -86,7 +86,7 @@ function onTableInput(ev) {
     return { ...prev, etfs };
   });
 
-  const isRf = !!getState().etfs.find(e => e.id === id)?.rf;
+  const isRf = !!getActivePortfolio().etfs.find(e => e.id === id)?.rf;
   checkBucket(isRf);
 }
 
@@ -99,7 +99,7 @@ function onTableClick(ev) {
   const id = Number(tr.dataset.id);
   if (!id) return;
 
-  updateState(prev => {
+  updateActivePortfolio(prev => {
     const etf = prev.etfs.find(e => e.id === id);
     const etfs = prev.etfs.filter(e => e.id !== id);
     const h = { ...prev.h };
@@ -111,7 +111,7 @@ function onTableClick(ev) {
 }
 
 function checkBucket(rf) {
-  const state = getState();
+  const state = getActivePortfolio();
   const bucket = state.etfs.filter(e => e.rf === rf);
   const sum = bucket.reduce((a, e) => a + Number(e.tgt), 0);
   const el = byId(rf ? 'rfm' : 'rm');
@@ -150,17 +150,17 @@ export function initSetupPage() {
     const raw = parseFloat(rpInput.value) || 0;
     const pct = Math.min(100, Math.max(0, raw));
     const frac = pct / 100;
-    updateState(prev => ({ ...prev, rp: frac }));
+    updateActivePortfolio(prev => ({ ...prev, rp: frac }));
     setText('sp', Math.round((1 - frac) * 100));
   });
 
   diInput?.addEventListener('change', () => {
     const v = parseFloat(diInput.value) || 0;
-    updateState(prev => ({ ...prev, di: v }));
+    updateActivePortfolio(prev => ({ ...prev, di: v }));
   });
 
   addRisky?.addEventListener('click', () => {
-    updateState(prev => {
+    updateActivePortfolio(prev => {
       const nextId = prev.nid ?? 1;
       const etfs = prev.etfs.concat({
         id: nextId,
@@ -178,7 +178,7 @@ export function initSetupPage() {
   });
 
   addRiskFree?.addEventListener('click', () => {
-    updateState(prev => {
+    updateActivePortfolio(prev => {
       const nextId = prev.nid ?? 1;
       const etfs = prev.etfs.concat({
         id: nextId,

@@ -1,10 +1,11 @@
-import { getState, updateState } from './state.js';
+import { getActivePortfolio, updateActivePortfolio } from './state.js';
 import { byId, setHTML, showPage } from './dom.js';
 import { initSetupPage, renderSetupPage, validateSetup } from './setupPage.js';
 import { initHoldingsPage, renderHoldingsPage } from './holdingsPage.js';
 import { fetchAllPrices } from './pricingService.js';
 import { optimizeAllocation } from './optimizer.js';
 import { renderResultsPage } from './resultsPage.js';
+import { initPortfolioBar, renderPortfolioBar } from './portfolioBar.js';
 
 function goToSetup() {
   showPage(1);
@@ -32,21 +33,21 @@ async function onFetchAndCalculate() {
   const sp = byId('fs');
   const ia = byId('ia');
 
-  const currentState = getState();
-  const inv = ia ? parseFloat(ia.value) || 0 : currentState.inv;
-  updateState(prev => ({ ...prev, inv }));
+  const currentPortfolio = getActivePortfolio();
+  const inv = ia ? parseFloat(ia.value) || 0 : currentPortfolio.inv;
+  updateActivePortfolio(prev => ({ ...prev, inv }));
 
   if (btn) btn.disabled = true;
   if (sp) sp.style.display = 'inline-block';
 
   try {
-    const state = getState();
-    const priceData = await fetchAllPrices(state.etfs);
+    const portfolio = getActivePortfolio();
+    const priceData = await fetchAllPrices(portfolio.etfs);
     setHTML(
       'pi',
       priceData.infoLines.map(p => `<div>${p}</div>`).join('')
     );
-    const result = optimizeAllocation(getState(), priceData);
+    const result = optimizeAllocation(portfolio, priceData);
     showPage(3);
     renderResultsPage(result);
   } catch (err) {
@@ -72,7 +73,9 @@ function initNav() {
 function init() {
   initSetupPage();
   initHoldingsPage();
+  initPortfolioBar();
   initNav();
+  renderPortfolioBar();
   goToSetup();
 }
 
