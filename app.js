@@ -1,13 +1,17 @@
 /**
  * app.js
- * Top-level orchestration: page navigation, fetch-and-calculate trigger,
- * and bootstrap. Loaded last, after all other modules.
+ * Top-level orchestration: page navigation, fetch-and-calculate trigger.
  *
- * Depends on: state.js, prices.js, optimizer.js, ui-setup.js, ui-holdings.js, ui-results.js
+ * Depends on all other modules:
+ *   state.js, prices.js, optimizer.js, ui-setup.js, ui-holdings.js, ui-results.js
  */
 
 // ── Page navigation ────────────────────────────────────────────────────────
 
+/**
+ * Show the given page number (1–3) and update step indicators.
+ * @param {number} n
+ */
 function showPage(n) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('p' + n).classList.add('active');
@@ -20,11 +24,13 @@ function showPage(n) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+/** Navigate to Page 1 and re-render setup. */
 function goToSetup() {
   showPage(1);
   renderSetupPage();
 }
 
+/** Validate setup, then navigate to Page 2 and render holdings. */
 function goToHoldings() {
   if (!validateSetup()) return;
   saveState();
@@ -32,24 +38,32 @@ function goToHoldings() {
   renderHoldingsPage();
 }
 
+/** Navigate back to Page 2. */
 function goBackToHoldings() {
   showPage(2);
   renderHoldingsPage();
 }
 
-// ── Fetch & calculate ──────────────────────────────────────────────────────
+// ── Fetch prices & calculate ───────────────────────────────────────────────
 
+/**
+ * Triggered by the "Fetch prices & calculate" button on Page 2.
+ * Fetches live prices for all ETFs, then renders the results page.
+ */
 async function fetchAndCalculate() {
+  // Sync the investment amount from the input field
   State.inv = parseFloat(document.getElementById('ia').value) || 0;
   saveState();
 
-  const btn     = document.getElementById('fb');
+  const btn    = document.getElementById('fb');
   const spinner = document.getElementById('fs');
-  btn.disabled  = true;
+
+  btn.disabled = true;
   spinner.style.display = 'inline-block';
 
   try {
     const priceData = await fetchAllPrices(State.etfs);
+
     showPage(3);
     renderResults(priceData);
   } catch (err) {
@@ -61,29 +75,6 @@ async function fetchAndCalculate() {
 }
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
-// Scripts are placed at the end of <body>, so the DOM is already parsed when
-// this runs. We wire up all persistent event listeners here (instead of
-// relying on DOMContentLoaded inside the other modules) to keep one clear
-// entry point.
 
-// Risky-fraction slider
-document.getElementById('rp').addEventListener('input', function () {
-  State.rp = Math.min(100, Math.max(0, parseFloat(this.value) || 0)) / 100;
-  document.getElementById('sp').textContent = Math.round((1 - State.rp) * 100);
-  saveState();
-});
-
-// Default investment amount
-document.getElementById('di').addEventListener('change', function () {
-  State.di = parseFloat(this.value) || 0;
-  saveState();
-});
-
-// Investment amount on page 2
-document.getElementById('ia').addEventListener('change', function () {
-  State.inv = parseFloat(this.value) || 0;
-  saveState();
-});
-
-// Initial render of Page 1
+// Render Page 1 on initial load
 renderSetupPage();
