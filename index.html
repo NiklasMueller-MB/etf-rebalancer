@@ -11,9 +11,9 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
 .shell{max-width:920px;margin:0 auto;padding:24px 16px 60px}
-.hd{margin-bottom:24px}.hd h1{font-size:22px;font-weight:600}.hd p{font-size:13px;color:var(--text2);margin-top:4px}
-.disclaimer{background:var(--Abg);color:var(--At);border:.5px solid var(--At);border-radius:var(--r);padding:12px 16px;margin-bottom:20px;font-size:12px;line-height:1.6;display:flex;gap:10px;align-items:flex-start}
-.disclaimer strong{display:block;font-size:13px;margin-bottom:2px}
+.hd{margin-bottom:16px}.hd h1{font-size:22px;font-weight:600}.hd p{font-size:13px;color:var(--text2);margin-top:4px}
+.disclaimer{background:var(--Abg);color:var(--At);border:.5px solid rgba(133,79,11,.25);border-radius:var(--rs);padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.6;display:flex;gap:10px;align-items:flex-start}
+.disclaimer strong{font-weight:600}
 .card{background:var(--bg);border:.5px solid var(--b);border-radius:var(--r);padding:20px;margin-bottom:16px}
 .ct{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px}
 .page{display:none}.page.active{display:block}
@@ -69,14 +69,11 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
 </head>
 <body>
 <div class="shell">
-<div class="hd"><h1>ETF Portfolio Rebalancer</h1><p>Live prices · Yahoo Finance &amp; Binance · Data stored only in your browser</p></div>
+<div class="hd"><h1>ETF Portfolio Rebalancer</h1><p>Live prices &middot; Yahoo Finance &amp; Binance &middot; Data stored only in your browser</p></div>
 
 <div class="disclaimer">
-  <span style="font-size:18px;line-height:1">⚠️</span>
-  <div>
-    <strong>No investment recommendation</strong>
-    The default portfolio shown here is an example for illustrative purposes only and does not constitute financial or investment advice. Past performance is not indicative of future results. All investment decisions are your own responsibility. Please consult a qualified financial advisor before making any investment decisions.
-  </div>
+  <span style="font-size:15px;line-height:1.4">&#9888;</span>
+  <span><strong>No investment recommendation.</strong> The default portfolio is a personal example for illustrative purposes only. It does not constitute financial or investment advice. Past performance is no guarantee of future results. Please consult a qualified financial advisor before making any investment decisions.</span>
 </div>
 
 <div class="steps">
@@ -96,13 +93,13 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
         <div class="row"><input type="number" id="rp" class="ixs" min="0" max="100" step="1" value="100">
         <span style="font-size:13px;color:var(--text2)">% risky &nbsp;/&nbsp; <span id="sp">0</span>% risk-free</span></div>
       </div>
-      <div><div class="fl">Default investment amount (€)</div>
+      <div><div class="fl">Default investment amount (&euro;)</div>
         <input type="number" id="di" class="imd" value="500" min="0" step="50">
       </div>
     </div>
   </div>
   <div class="card">
-    <div class="ct">Risky assets — targets within risky bucket (must sum to 100%)</div>
+    <div class="ct">Risky assets &mdash; targets within risky bucket (must sum to 100%)</div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Crypto assets (BTC, ETH) use Binance EUR pairs. ETFs use Yahoo Finance tickers.</p>
     <div style="overflow-x:auto">
       <table class="tbl"><thead><tr>
@@ -113,7 +110,7 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
     <div id="rm"></div>
   </div>
   <div class="card">
-    <div class="ct">Risk-free assets — targets within risk-free bucket (must sum to 100%)</div>
+    <div class="ct">Risk-free assets &mdash; targets within risk-free bucket (must sum to 100%)</div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Leave ticker blank for plain cash (Tagesgeld).</p>
     <div style="overflow-x:auto">
       <table class="tbl"><thead><tr>
@@ -144,7 +141,7 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
       <button class="tab" id="ts" onclick="setM('savings')">Monthly savings plan</button>
     </div>
     <div class="row" style="gap:14px">
-      <div><div class="fl">Amount (€)</div><input type="number" id="ia" class="imd" value="500" min="0" step="50"></div>
+      <div><div class="fl">Amount (&euro;)</div><input type="number" id="ia" class="imd" value="500" min="0" step="50"></div>
       <div style="padding-top:18px;font-size:13px;color:var(--text2)" id="mh">invested as a one-time purchase</div>
     </div>
   </div>
@@ -176,10 +173,10 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
     <div class="ct" id="att">Recommended trades</div>
     <div style="overflow-x:auto">
       <table class="tbl"><thead><tr>
-        <th>Asset</th><th>Action</th><th>Amount (€)</th><th>Approx. units</th><th>Limit price</th>
+        <th>Asset</th><th>Action</th><th>Amount (&euro;)</th><th>Approx. units</th><th>Limit price</th>
       </tr></thead><tbody id="actb"></tbody></table>
     </div>
-    <div style="font-size:11px;color:var(--text3);margin-top:10px">Buy limit = avg 3-day low &nbsp;·&nbsp; Sell limit = avg 3-day high &nbsp;·&nbsp; Crypto: Binance, ETFs: Yahoo Finance</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px">Buy limit = avg 3-day low &nbsp;&middot;&nbsp; Sell limit = avg 3-day high &nbsp;&middot;&nbsp; Crypto: Binance, ETFs: Yahoo Finance</div>
   </div>
   <div class="card" style="background:var(--bg2)">
     <div class="ct">Price fetch details</div>
@@ -193,21 +190,14 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
 </div>
 
 <script>
-// Default portfolio: ETF targets scaled to 95% (leaving 5% for BTC 3% + ETH 2%)
-// Original ETF weights: XZW0=52, WSML=15, AYEM=33 → scaled to sum=95: 50+14+31=95 ✓
+// Risky targets scaled to sum to 100% (49+14+32+3+2=100).
 const DEF={riskPct:1,defInv:500,etfs:[
-  {id:1, isin:'IE00BZ02LR44',ticker:'XZW0.DE', name:'Xtrackers MSCI World ESG',      rf:false,cr:false,cat:'Akt. Ind.',   tgt:50},
-  {id:2, isin:'IE00BZ0PKT83',ticker:'IFSW.MI', name:'iShares World Multifactor',     rf:false,cr:false,cat:'Akt. Ind.',   tgt:0},
-  {id:3, isin:'IE00BF4RFH31',ticker:'WSML.L',  name:'iShares MSCI World Small Cap',  rf:false,cr:false,cat:'Akt. Ind. SM',tgt:14},
-  {id:4, isin:'LU0380865021',ticker:'XESC.MU', name:'Xtrackers Euro Stoxx 50',       rf:false,cr:false,cat:'Akt. Eur.',   tgt:0},
-  {id:5, isin:'IE00BFMNHK08',ticker:'XZEU.DE', name:'Xtrackers MSCI Europe ESG',     rf:false,cr:false,cat:'Akt. Eur.',   tgt:0},
-  {id:6, isin:'IE00BG370F43',ticker:'XZEM.DE', name:'Xtrackers MSCI EM ESG',         rf:false,cr:false,cat:'Akt. EM',     tgt:0},
-  {id:7, isin:'IE00BFNM3P36',ticker:'AYEM.DE', name:'iShares MSCI EM IMI ESG',       rf:false,cr:false,cat:'Akt. EM',     tgt:31},
-  {id:8, isin:'IE00BKM4GZ66',ticker:'EMIM.AS', name:'iShares Core MSCI EM IMI',      rf:false,cr:false,cat:'Akt. EM',     tgt:0},
-  {id:10,isin:'BitCoin',     ticker:'BTCEUR',  name:'Bitcoin',                       rf:false,cr:true, cat:'Krypto',      tgt:3},
-  {id:11,isin:'Ethereum',    ticker:'ETHEUR',  name:'Ethereum',                      rf:false,cr:true, cat:'Krypto',      tgt:2},
-  {id:9, isin:'LU1829219556',ticker:'MA13.PA', name:'Amundi Govt Bond 1-3Y',         rf:true, cr:false,cat:'StaatsAnl.',  tgt:0},
-  {id:12,isin:'Tagesgeld',   ticker:'',        name:'Tagesgeld / Cash',              rf:true, cr:false,cat:'Bank',        tgt:100}
+  {id:1, isin:'IE00BZ02LR44',ticker:'XZW0.DE', name:'Xtrackers MSCI World ESG',     rf:false,cr:false,cat:'Akt. Ind.',   tgt:49},
+  {id:3, isin:'IE00BF4RFH31',ticker:'WSML.L',  name:'iShares MSCI World Small Cap', rf:false,cr:false,cat:'Akt. Ind. SM',tgt:14},
+  {id:7, isin:'IE00BFNM3P36',ticker:'AYEM.DE', name:'iShares MSCI EM IMI ESG',      rf:false,cr:false,cat:'Akt. EM',     tgt:32},
+  {id:10,isin:'BitCoin',     ticker:'BTCEUR',  name:'Bitcoin',                      rf:false,cr:true, cat:'Krypto',      tgt:3},
+  {id:11,isin:'Ethereum',    ticker:'ETHEUR',  name:'Ethereum',                     rf:false,cr:true, cat:'Krypto',      tgt:2},
+  {id:12,isin:'Tagesgeld',   ticker:'',        name:'Tagesgeld / Cash',             rf:true, cr:false,cat:'Bank',        tgt:100}
 ]};
 
 const SK='etf_reb_v5';
@@ -244,8 +234,8 @@ function chkB(rf){
   const b=S.etfs.filter(e=>e.rf===rf),sum=b.reduce((a,e)=>a+Number(e.tgt),0);
   const el=document.getElementById(rf?'rfm':'rm');if(!el)return true;
   if(sum===0){el.innerHTML='';return true;}
-  if(Math.abs(sum-100)>0.01){el.innerHTML=`<div class="msg mw">${rf?'Risk-free':'Risky'} targets sum to ${sum.toFixed(1)}% — must equal 100%</div>`;return false;}
-  el.innerHTML=`<div class="msg mo">${rf?'Risk-free':'Risky'} targets sum to 100% ✓</div>`;return true;
+  if(Math.abs(sum-100)>0.01){el.innerHTML=`<div class="msg mw">${rf?'Risk-free':'Risky'} targets sum to ${sum.toFixed(1)}% &mdash; must equal 100%</div>`;return false;}
+  el.innerHTML=`<div class="msg mo">${rf?'Risk-free':'Risky'} targets sum to 100% &#10003;</div>`;return true;
 }
 function valS(){
   if(!chkB(false)){alert('Risky asset targets must sum to 100%.');return false;}
@@ -257,7 +247,7 @@ function setM(m){
   S.mode=m;
   document.getElementById('to').classList.toggle('active',m==='onetime');
   document.getElementById('ts').classList.toggle('active',m==='savings');
-  document.getElementById('mh').textContent=m==='onetime'?'invested as a one-time purchase':'per month (3× used for target calculation)';
+  document.getElementById('mh').textContent=m==='onetime'?'invested as a one-time purchase':'per month (3x used for target calculation)';
   save();
 }
 function renderH(){
@@ -265,7 +255,7 @@ function renderH(){
   const all=[...S.etfs.filter(e=>!e.rf),...S.etfs.filter(e=>e.rf)];
   document.getElementById('hb').innerHTML=all.map(e=>`<tr>
     <td><span style="font-weight:500">${e.name}</span><br><span class="cat">${e.cat||''}</span></td>
-    <td class="hs mono">${e.ticker||'—'}</td>
+    <td class="hs mono">${e.ticker||'&mdash;'}</td>
     <td class="hs"><span class="badge ${e.rf?'bt':'bb'}">${e.rf?'Risk-free':'Risky'}</span></td>
     <td><input type="number" class="ism" min="0" step="any" style="width:110px" value="${S.h[e.id]||0}" onchange="S.h[${e.id}]=parseFloat(this.value)||0;save()"></td>
     <td><span class="badge bx">${e.tgt}%</span></td>
@@ -305,11 +295,11 @@ async function fetchCalc(){
   btn.disabled=true;sp.style.display='inline-block';
   const pr={},hi={},lo={},cu={},info=[];
   for(const e of S.etfs){
-    if(!e.ticker&&e.rf){pr[e.id]=1;hi[e.id]=1;lo[e.id]=1;cu[e.id]='EUR';info.push(`${e.name}: cash (€1.00)`);continue;}
+    if(!e.ticker&&e.rf){pr[e.id]=1;hi[e.id]=1;lo[e.id]=1;cu[e.id]='EUR';info.push(`${e.name}: cash (EUR 1.00)`);continue;}
     try{
       const r=e.cr?await bPrice(e.ticker):await yPrice(e.ticker);
       pr[e.id]=r.p;hi[e.id]=r.aH;lo[e.id]=r.aL;cu[e.id]=r.cur;
-      info.push(`${e.name} (${e.ticker}): €${r.p.toFixed(2)} ${r.cur} · buy ≤€${r.aL.toFixed(2)} · sell ≥€${r.aH.toFixed(2)}`);
+      info.push(`${e.name} (${e.ticker}): ${r.p.toFixed(2)} ${r.cur} - buy max ${r.aL.toFixed(2)} - sell min ${r.aH.toFixed(2)}`);
     }catch(err){
       btn.disabled=false;sp.style.display='none';
       alert(`Could not fetch price for "${e.name}" (${e.ticker}).\n\nETFs: use Yahoo Finance ticker (e.g. XZW0.DE, EMIM.AS)\nCrypto: use Binance EUR pair (e.g. BTCEUR, ETHEUR)\n\nError: ${err.message}`);
@@ -346,17 +336,17 @@ function calcR(pr,hi,lo,cu){
   pg(3);
 
   document.getElementById('sm').innerHTML=`
-    <div class="mc"><div class="ml">Current portfolio</div><div class="mv">€${f(tot)}</div><div class="ms">${etfs.filter(e=>(S.h[e.id]||0)>0).length} positions</div></div>
-    <div class="mc"><div class="ml">After investment</div><div class="mv">€${f(tot+inv)}</div><div class="ms">+€${f(inv)}</div></div>
+    <div class="mc"><div class="ml">Current portfolio</div><div class="mv">&#8364;${f(tot)}</div><div class="ms">${etfs.filter(e=>(S.h[e.id]||0)>0).length} positions</div></div>
+    <div class="mc"><div class="ml">After investment</div><div class="mv">&#8364;${f(tot+inv)}</div><div class="ms">+&#8364;${f(inv)}</div></div>
     <div class="mc"><div class="ml">Risky / risk-free</div><div class="mv" style="font-size:16px">${(rp*100).toFixed(0)}% / ${((1-rp)*100).toFixed(0)}%</div><div class="ms">target split</div></div>
-    <div class="mc"><div class="ml">Mode</div><div class="mv" style="font-size:14px;padding-top:4px">${mode==='onetime'?'One-time':'Savings'}</div><div class="ms">€${f(inv)}${mode==='savings'?'/mo':''}</div></div>`;
+    <div class="mc"><div class="ml">Mode</div><div class="mv" style="font-size:14px;padding-top:4px">${mode==='onetime'?'One-time':'Savings'}</div><div class="ms">&#8364;${f(inv)}${mode==='savings'?'/mo':''}</div></div>`;
 
   const ord=[...etfs.filter(e=>!e.rf),...etfs.filter(e=>e.rf)];
   document.getElementById('ab').innerHTML=ord.map(e=>{
     const i=etfs.indexOf(e),cur=tot>0?ist[i]/tot*100:0,tgt=sol[i]/ft*100,dr=cur-tgt;
     const db=Math.abs(dr)<0.5?`<span class="badge bx">${dr.toFixed(1)}%</span>`:dr>0?`<span class="badge ba">+${dr.toFixed(1)}%</span>`:`<span class="badge bb">${dr.toFixed(1)}%</span>`;
     const bc=dr>2?'#EF9F27':dr<-2?'#378ADD':'#1D9E75',bw=Math.min(100,Math.abs(dr)/20*100);
-    const ps=(e.rf&&!e.ticker)?'—':pr[e.id].toFixed(2)+' '+(cu[e.id]||'');
+    const ps=(e.rf&&!e.ticker)?'&mdash;':pr[e.id].toFixed(2)+' '+(cu[e.id]||'');
     return`<tr><td style="font-weight:500">${e.name}</td><td class="hs"><span class="cat">${e.cat||''}</span></td><td class="mono">${ps}</td><td>${cur.toFixed(1)}%</td><td>${tgt.toFixed(1)}%</td><td>${db}</td><td class="hs"><div class="bw"><div class="bf" style="width:${bw}%;background:${bc}"></div></div></td></tr>`;
   }).join('');
 
@@ -369,12 +359,12 @@ function calcR(pr,hi,lo,cu){
       {label:'Target %', data:ce.map(e=>{const i=etfs.indexOf(e);return+((sol[i]/ft*100).toFixed(2));}),backgroundColor:'#1D9E75',borderRadius:3}
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},maxRotation:40}},y:{ticks:{callback:v=>v+'%',font:{size:11}}}}}});
 
-  document.getElementById('att').textContent=mode==='onetime'?`Recommended trades — one-time €${f(inv)} investment`:`Recommended savings plan — €${f(inv)}/month`;
+  document.getElementById('att').textContent=mode==='onetime'?`Recommended trades - one-time EUR ${f(inv)} investment`:`Recommended savings plan - EUR ${f(inv)}/month`;
   document.getElementById('actb').innerHTML=ord.map(e=>{
     const i=etfs.indexOf(e),amt=r[i];
-    if(Math.abs(amt)<0.5)return`<tr><td style="font-weight:500">${e.name}</td><td><span class="badge bx">Hold</span></td><td style="color:var(--text3)">—</td><td style="color:var(--text3)">—</td><td class="mono" style="color:var(--text2)">${(e.rf&&!e.ticker)?'—':'€'+pr[e.id].toFixed(2)}</td></tr>`;
+    if(Math.abs(amt)<0.5)return`<tr><td style="font-weight:500">${e.name}</td><td><span class="badge bx">Hold</span></td><td style="color:var(--text3)">&mdash;</td><td style="color:var(--text3)">&mdash;</td><td class="mono" style="color:var(--text2)">${(e.rf&&!e.ticker)?'&mdash;':'EUR '+pr[e.id].toFixed(2)}</td></tr>`;
     const buy=amt>0,units=Math.abs(amt)/pr[e.id],lim=buy?lo[e.id]:hi[e.id];
-    return`<tr><td style="font-weight:500">${e.name}</td><td><span class="badge ${buy?'bg':'br'}">${buy?'Buy':'Sell'}</span></td><td style="font-weight:500">€${Math.abs(amt).toFixed(2)}</td><td>~${units.toFixed(4)}</td><td class="mono">€${lim.toFixed(2)} (${buy?'max':'min'})</td></tr>`;
+    return`<tr><td style="font-weight:500">${e.name}</td><td><span class="badge ${buy?'bg':'br'}">${buy?'Buy':'Sell'}</span></td><td style="font-weight:500">EUR ${Math.abs(amt).toFixed(2)}</td><td>~${units.toFixed(4)}</td><td class="mono">EUR ${lim.toFixed(2)} (${buy?'max':'min'})</td></tr>`;
   }).join('');
 }
 function f(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
