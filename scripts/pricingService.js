@@ -13,6 +13,81 @@
 // ---------------------------------------------------------------------------
 
 const T = 20_000; // global timeout ms
+const PRICE_CACHE_KEY = 'etf_reb_price_cache';
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// ── price cache management ─────────────────────────────────────────────────────
+function getPriceCache() {
+  try {
+    const cached = localStorage.getItem(PRICE_CACHE_KEY);
+    return cached ? JSON.parse(cached) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePriceCache(cache) {
+  try {
+    localStorage.setItem(PRICE_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function isCacheValid(timestamp) {
+  return Date.now() - timestamp < CACHE_DURATION_MS;
+}
+
+function getCachedPrice(ticker) {
+  const cache = getPriceCache();
+  const entry = cache[ticker];
+  if (entry && isCacheValid(entry.timestamp)) {
+    return entry.data;
+  }
+  return null;
+}
+
+function setCachedPrice(ticker, priceData) {
+  const cache = getPriceCache();
+  cache[ticker] = {
+    data: priceData,
+    timestamp: Date.now()
+  };
+  savePriceCache(cache);
+}
+
+// ── cache export/import functions ──────────────────────────────────────────────
+export function exportPriceCache() {
+  const cache = getPriceCache();
+  return {
+    priceCache: cache,
+    exportDate: new Date().toISOString()
+  };
+}
+
+export function importPriceCache(priceData) {
+  if (!priceData || !priceData.priceCache) {
+    return;
+  }
+  
+  try {
+    // Only import cache entries that are still valid
+    const cache = priceData.priceCache;
+    const validEntries = {};
+    
+    for (const [ticker, entry] of Object.entries(cache)) {
+      if (entry && entry.data && isCacheValid(entry.timestamp)) {
+        validEntries[ticker] = entry;
+      }
+    }
+    
+    if (Object.keys(validEntries).length > 0) {
+      savePriceCache(validEntries);
+    }
+  } catch (error) {
+    console.warn('Failed to import price cache:', error);
+  }
+}
 
 // ── tiny helper ─────────────────────────────────────────────────────────────
 function sig() { return AbortSignal.timeout(T); }
@@ -84,6 +159,12 @@ function parseChart(data, ticker) {
 
 // ── Main Yahoo fetch: try sources sequentially, stop at first success ────────
 export async function fetchYahooPrice(ticker) {
+  // Check cache first
+  const cached = getCachedPrice(ticker);
+  if (cached) {
+    return cached;
+  }
+
   const sources = [
     { name: 'allorigins+query2', fn: () => fetchViaAllorigins(ticker).then(d => parseChart(d, ticker)) },
     { name: 'corsproxy+query1',  fn: () => fetchViaCorsproxy(ticker).then(d => parseChart(d, ticker)) },
@@ -98,7 +179,10 @@ export async function fetchYahooPrice(ticker) {
   const errors = [];
   for (const src of sources) {
     try {
-      return await src.fn();
+      const result = await src.fn();
+      // Cache the successful result
+      setCachedPrice(ticker, result);
+      return result;
     } catch (e) {
       errors.push(`[${src.name}] ${e.message}`);
     }
@@ -108,6 +192,12 @@ export async function fetchYahooPrice(ticker) {
 
 // ── Binance — direct, no proxy needed ───────────────────────────────────────
 export async function fetchBinancePrice(symbol) {
+  // Check cache first
+  const cached = getCachedPrice(symbol);
+  if (cached) {
+    return cached;
+  }
+
   let tr, kr;
   try {
     [tr, kr] = await Promise.all([
@@ -128,7 +218,11 @@ export async function fetchBinancePrice(symbol) {
   let aL = l3.reduce((a, k) => a + parseFloat(k[3]), 0) / l3.length;
   if (aL > p) aL = p;
   if (aH < p) aH = p;
-  return { price: p, avgHigh: aH, avgLow: aL, currency: 'EUR' };
+  
+  const result = { price: p, avgHigh: aH, avgLow: aL, currency: 'EUR' };
+  // Cache the successful result
+  setCachedPrice(symbol, result);
+  return result;
 }
 
 // ── fetchAllPrices — main entry point ───────────────────────────────────────

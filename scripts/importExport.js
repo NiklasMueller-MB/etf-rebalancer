@@ -1,5 +1,6 @@
 import { getState, setState } from './state.js';
 import { byId } from './dom.js';
+import { exportPriceCache, importPriceCache } from './pricingService.js';
 
 export function exportPortfolioData() {
   const state = getState();
@@ -24,7 +25,8 @@ export function exportPortfolioData() {
       })),
       holdings: portfolio.h || {}
     })),
-    activePortfolioId: state.activePortfolioId
+    activePortfolioId: state.activePortfolioId,
+    priceCache: exportPriceCache()
   };
 
   const dataStr = JSON.stringify(exportData, null, 2);
@@ -78,6 +80,12 @@ export function importPortfolioData(file) {
         };
 
         setState(newState);
+        
+        // Import price cache if available
+        if (importData.priceCache) {
+          importPriceCache(importData.priceCache);
+        }
+        
         resolve(importData);
       } catch (error) {
         reject(new Error(`Failed to import portfolio data: ${error.message}`));
