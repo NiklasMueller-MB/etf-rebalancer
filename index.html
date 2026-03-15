@@ -1,266 +1,624 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ETF Portfolio Rebalancer</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETF Portfolio Rebalancer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#fff;--bg2:#f5f5f3;--bg3:#eeede8;--text:#1a1a18;--text2:#5f5e5a;--text3:#888780;--b:rgba(0,0,0,.12);--b2:rgba(0,0,0,.22);--r:10px;--rs:6px;--Gbg:#EAF3DE;--Gt:#3B6D11;--Rbg:#FCEBEB;--Rt:#A32D2D;--Abg:#FAEEDA;--At:#854F0B;--Bbg:#E6F1FB;--Bt:#185FA5;--Tbg:#E1F5EE;--Tt:#0F6E56}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e1c;--bg2:#272724;--bg3:#303030;--text:#e8e6de;--text2:#a8a69e;--text3:#6e6c66;--b:rgba(255,255,255,.1);--b2:rgba(255,255,255,.2);--Gbg:#173404;--Gt:#C0DD97;--Rbg:#501313;--Rt:#F09595;--Abg:#412402;--At:#FAC775;--Bbg:#042C53;--Bt:#85B7EB;--Tbg:#04342C;--Tt:#5DCAA5}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+.shell{max-width:920px;margin:0 auto;padding:24px 16px 60px}
+.hd{margin-bottom:16px}.hd h1{font-size:22px;font-weight:600}.hd p{font-size:13px;color:var(--text2);margin-top:4px}
+.disclaimer{background:var(--Abg);color:var(--At);border:.5px solid rgba(133,79,11,.25);border-radius:var(--rs);padding:10px 14px;margin-bottom:20px;font-size:12px;line-height:1.6;display:flex;gap:10px;align-items:flex-start}
+.disclaimer strong{font-weight:600}
+.pfsw{background:var(--bg);border:.5px solid var(--b);border-radius:var(--r);padding:12px 20px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pfsw-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}
+.pfsw select{flex:1;min-width:160px;max-width:260px}
+.pfsw-actions{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.card{background:var(--bg);border:.5px solid var(--b);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.ct{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px}
+.page{display:none}.page.active{display:block}
+.steps{display:flex;gap:6px;align-items:center;margin-bottom:24px}
+.step{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text3)}
+.step.active{color:var(--text);font-weight:500}
+.sn{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+.step.active .sn{background:var(--text);color:var(--bg);border-color:var(--text)}
+.step.done .sn{background:var(--Gbg);color:var(--Gt);border-color:var(--Gt)}
+.ss{flex:1;height:1px;background:var(--b);max-width:40px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:11px;color:var(--text3);font-weight:500;text-align:left;padding:0 6px 8px;border-bottom:.5px solid var(--b)}
+.tbl td{padding:7px 6px;border-bottom:.5px solid var(--b);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+input[type=text],input[type=number],select{background:var(--bg2);border:.5px solid var(--b2);border-radius:var(--rs);color:var(--text);font-size:13px;padding:6px 9px;outline:none;width:100%}
+input:focus,select:focus{border-color:var(--text2)}
+input[type=checkbox]{width:auto;accent-color:var(--text)}
+.ixs{width:64px!important}.ism{width:80px!important}.imd{width:120px!important}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;border:.5px solid var(--b2);background:transparent;color:var(--text)}
+.btn:hover{background:var(--bg2)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btnp{background:var(--text);color:var(--bg);border-color:var(--text)}.btnp:hover{opacity:.88;background:var(--text)}
+.btns{padding:5px 12px;font-size:12px}
+.btnd{color:var(--Rt);border:none;background:none;padding:3px 6px;cursor:pointer;font-size:17px;line-height:1}
+.tabs{display:flex;gap:4px;margin-bottom:16px}
+.tab{padding:6px 14px;border-radius:var(--rs);font-size:13px;cursor:pointer;border:.5px solid var(--b);background:transparent;color:var(--text2)}
+.tab.active{background:var(--bg2);color:var(--text);font-weight:500;border-color:var(--b2)}
+.badge{display:inline-block;font-size:11px;border-radius:20px;padding:2px 8px;font-weight:500}
+.bg{background:var(--Gbg);color:var(--Gt)}.br{background:var(--Rbg);color:var(--Rt)}
+.ba{background:var(--Abg);color:var(--At)}.bb{background:var(--Bbg);color:var(--Bt)}
+.bx{background:var(--bg3);color:var(--text2)}.bt{background:var(--Tbg);color:var(--Tt)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.mc{background:var(--bg2);border-radius:var(--rs);padding:14px}
+.ml{font-size:11px;color:var(--text3);margin-bottom:4px}.mv{font-size:20px;font-weight:600}.ms{font-size:11px;color:var(--text3);margin-top:2px}
+.bw{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;min-width:50px}
+.bf{height:100%;border-radius:3px}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.msg{font-size:12px;margin-top:8px;padding:6px 10px;border-radius:var(--rs)}
+.mw{background:var(--Abg);color:var(--At)}.mo{background:var(--Gbg);color:var(--Gt)}
+.cw{position:relative;width:100%;height:220px;margin:12px 0 4px}
+.leg{display:flex;gap:16px;font-size:12px;color:var(--text2);flex-wrap:wrap}
+.ld{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--b2);border-top-color:var(--text);border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fl{font-size:12px;color:var(--text2);margin-bottom:5px}
+.note{font-size:12px;color:var(--text3);background:var(--bg2);border-radius:var(--rs);padding:10px 12px;margin-top:8px;display:flex;gap:8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mono{font-family:ui-monospace,monospace;font-size:12px}
+.cat{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--bg3);color:var(--text3);font-weight:500}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg);border-radius:var(--r);padding:24px;max-width:400px;width:90%;border:.5px solid var(--b2)}
+.modal h2{font-size:16px;font-weight:600;margin-bottom:14px}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+@media(max-width:620px){.g2{grid-template-columns:1fr}.hs{display:none}}
+</style>
 </head>
 <body>
 <div class="shell">
 
-  <!-- ── Header ──────────────────────────────────────────────────────────── -->
-  <div class="hd">
-    <h1>ETF Portfolio Rebalancer</h1>
-    <p>Live prices · Yahoo Finance &amp; Binance · Data stored only in your browser</p>
+<div class="hd">
+  <h1>ETF Portfolio Rebalancer</h1>
+  <p>Live prices &middot; Yahoo Finance &amp; Binance &middot; Data stored only in your browser</p>
+</div>
+
+<div class="disclaimer">
+  <span style="font-size:15px;line-height:1.4">&#9888;</span>
+  <span><strong>No investment recommendation.</strong> The default portfolio is a personal example for illustrative purposes only. It does not constitute financial or investment advice. Past performance is no guarantee of future results. Please consult a qualified financial advisor before making any investment decisions.</span>
+</div>
+
+<!-- Portfolio switcher -->
+<div class="pfsw">
+  <span class="pfsw-label">Portfolio</span>
+  <select id="pfsel" onchange="switchPortfolio(this.value)"></select>
+  <div class="pfsw-actions">
+    <button class="btn btns" onclick="newPortfolio()">+ New</button>
+    <button class="btn btns" onclick="renamePortfolio()">&#9998; Rename</button>
+    <button class="btn btns" onclick="deletePortfolio()" style="color:var(--Rt)">&#128465; Delete</button>
+    <button class="btn btns" onclick="exportPortfolio()">&#11015; Export</button>
+    <button class="btn btns" onclick="document.getElementById('impinput').click()">&#11014; Import</button>
+    <input type="file" id="impinput" accept=".json" style="display:none" onchange="importPortfolio(event)">
   </div>
+</div>
 
-  <!-- ── Step indicator ──────────────────────────────────────────────────── -->
-  <div class="steps">
-    <div class="step active" id="s1"><div class="sn">1</div><span>Setup</span></div>
-    <div class="ss"></div>
-    <div class="step" id="s2"><div class="sn">2</div><span>Holdings</span></div>
-    <div class="ss"></div>
-    <div class="step" id="s3"><div class="sn">3</div><span>Results</span></div>
-  </div>
+<div class="steps">
+  <div class="step active" id="s1"><div class="sn">1</div><span>Setup</span></div>
+  <div class="ss"></div>
+  <div class="step" id="s2"><div class="sn">2</div><span>Holdings</span></div>
+  <div class="ss"></div>
+  <div class="step" id="s3"><div class="sn">3</div><span>Results</span></div>
+</div>
 
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <!-- PAGE 1 — Setup                                                        -->
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <div class="page active" id="p1">
-
-    <!-- Risk split + default investment amount -->
-    <div class="card">
-      <div class="ct">Risk allocation</div>
-      <div class="g2">
-        <div>
-          <div class="fl">% in risky assets (equities, crypto)</div>
-          <div class="row">
-            <input type="number" id="rp" class="ixs" min="0" max="100" step="1" value="100">
-            <span style="font-size:13px;color:var(--text2)">
-              % risky &nbsp;/&nbsp; <span id="sp">0</span>% risk-free
-            </span>
-          </div>
-        </div>
-        <div>
-          <div class="fl">Default investment amount (€)</div>
-          <input type="number" id="di" class="imd" value="500" min="0" step="50">
-        </div>
-      </div>
-    </div>
-
-    <!-- Risky assets table -->
-    <div class="card">
-      <div class="ct">Risky assets — targets within risky bucket (must sum to 100%)</div>
-      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">
-        Crypto assets (BTC, ETH) use Binance EUR pairs. ETFs use Yahoo Finance tickers.
-      </p>
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Ticker</th>
-              <th>Category</th>
-              <th>Target %</th>
-              <th title="Crypto: price via Binance">Crypto?</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="rb"></tbody>
-        </table>
-      </div>
-      <button class="btn btns" style="margin-top:10px" onclick="handleAddEtf(false)">
-        + Add risky asset
-      </button>
-      <div id="rm"></div>
-    </div>
-
-    <!-- Risk-free assets table -->
-    <div class="card">
-      <div class="ct">Risk-free assets — targets within risk-free bucket (must sum to 100%)</div>
-      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">
-        Leave ticker blank for plain cash (Tagesgeld).
-      </p>
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Ticker</th>
-              <th>Category</th>
-              <th>Target %</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="rfb"></tbody>
-        </table>
-      </div>
-      <button class="btn btns" style="margin-top:10px" onclick="handleAddEtf(true)">
-        + Add risk-free asset
-      </button>
-      <div id="rfm"></div>
-    </div>
-
-    <!-- Privacy note -->
-    <div class="note">
-      &#128274;&nbsp;
-      <span>All data stored only in <strong>your browser</strong> (localStorage).
-      Nothing sent to any server. Prices fetched by your browser directly from Yahoo Finance and Binance.</span>
-    </div>
-
-    <div class="nav">
-      <span></span>
-      <button class="btn btnp" onclick="goToHoldings()">Next: enter holdings &rarr;</button>
-    </div>
-  </div>
-
-
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <!-- PAGE 2 — Holdings                                                     -->
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <div class="page" id="p2">
-
-    <!-- Shares held per asset -->
-    <div class="card">
-      <div class="ct">Current shares / units held</div>
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>Asset</th>
-              <th class="hs">Ticker</th>
-              <th class="hs">Category</th>
-              <th>Shares held</th>
-              <th>Target %</th>
-            </tr>
-          </thead>
-          <tbody id="hb"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Investment amount & mode -->
-    <div class="card">
-      <div class="ct">Investment amount</div>
-      <div class="tabs">
-        <button class="tab active" id="to" onclick="setInvestmentMode('onetime')">
-          One-time investment
-        </button>
-        <button class="tab" id="ts" onclick="setInvestmentMode('savings')">
-          Monthly savings plan
-        </button>
-      </div>
-      <div class="row" style="gap:14px">
-        <div>
-          <div class="fl">Amount (€)</div>
-          <input type="number" id="ia" class="imd" value="500" min="0" step="50">
-        </div>
-        <div style="padding-top:18px;font-size:13px;color:var(--text2)" id="mh">
-          invested as a one-time purchase
+<!-- PAGE 1 -->
+<div class="page active" id="p1">
+  <div class="card">
+    <div class="ct">Risk allocation</div>
+    <div class="g2">
+      <div>
+        <div class="fl">% in risky assets (equities, crypto)</div>
+        <div class="row">
+          <input type="number" id="rp" class="ixs" min="0" max="100" step="1" value="100">
+          <span style="font-size:13px;color:var(--text2)">% risky &nbsp;/&nbsp; <span id="sp">0</span>% risk-free</span>
         </div>
       </div>
-    </div>
-
-    <div class="nav">
-      <button class="btn" onclick="goToSetup()">&larr; Back</button>
-      <button class="btn btnp" id="fb" onclick="fetchAndCalculate()">
-        <span id="fs" style="display:none" class="spin"></span>
-        Fetch prices &amp; calculate &rarr;
-      </button>
+      <div>
+        <div class="fl">Default investment amount (&euro;)</div>
+        <input type="number" id="di" class="imd" value="500" min="0" step="50">
+      </div>
     </div>
   </div>
-
-
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <!-- PAGE 3 — Results                                                      -->
-  <!-- ══════════════════════════════════════════════════════════════════════ -->
-  <div class="page" id="p3">
-
-    <!-- Summary metrics -->
-    <div class="metrics" id="sm"></div>
-
-    <!-- Allocation table + bar chart -->
-    <div class="card">
-      <div class="ct">Allocation: current vs. target</div>
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>Asset</th>
-              <th class="hs">Category</th>
-              <th>Price</th>
-              <th>Current %</th>
-              <th>Target %</th>
-              <th>Drift</th>
-              <th class="hs">Bar</th>
-            </tr>
-          </thead>
-          <tbody id="ab"></tbody>
-        </table>
-      </div>
-      <div class="cw"><canvas id="ac"></canvas></div>
-      <div class="leg">
-        <span><span class="ld" style="background:#9FE1CB"></span>Current %</span>
-        <span><span class="ld" style="background:#1D9E75"></span>Target %</span>
-      </div>
+  <div class="card">
+    <div class="ct">Risky assets &mdash; targets within risky bucket (must sum to 100%)</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Crypto assets (BTC, ETH) use Binance EUR pairs. ETFs use Yahoo Finance tickers.</p>
+    <div style="overflow-x:auto">
+      <table class="tbl"><thead><tr>
+        <th>Name</th><th>Ticker</th><th>Category</th><th>Target %</th><th title="Crypto: price via Binance">Crypto?</th><th></th>
+      </tr></thead><tbody id="rb"></tbody></table>
     </div>
-
-    <!-- Trade recommendations -->
-    <div class="card">
-      <div class="ct" id="att">Recommended trades</div>
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead>
-            <tr>
-              <th>Asset</th>
-              <th>Action</th>
-              <th>Amount (€)</th>
-              <th>Approx. units</th>
-              <th>Limit price</th>
-            </tr>
-          </thead>
-          <tbody id="actb"></tbody>
-        </table>
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:10px">
-        Buy limit = avg 3-day low &nbsp;·&nbsp; Sell limit = avg 3-day high
-        &nbsp;·&nbsp; Crypto: Binance, ETFs: Yahoo Finance
-      </div>
+    <button class="btn btns" style="margin-top:10px" onclick="addE(false)">+ Add risky asset</button>
+    <div id="rm"></div>
+  </div>
+  <div class="card">
+    <div class="ct">Risk-free assets &mdash; targets within risk-free bucket (must sum to 100%)</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Leave ticker blank for plain cash (Tagesgeld).</p>
+    <div style="overflow-x:auto">
+      <table class="tbl"><thead><tr>
+        <th>Name</th><th>Ticker</th><th>Category</th><th>Target %</th><th></th>
+      </tr></thead><tbody id="rfb"></tbody></table>
     </div>
+    <button class="btn btns" style="margin-top:10px" onclick="addE(true)">+ Add risk-free asset</button>
+    <div id="rfm"></div>
+  </div>
+  <div class="note">&#128274;&nbsp;<span>All data stored only in <strong>your browser</strong> (localStorage). Nothing sent to any server. Prices fetched by your browser directly from Yahoo Finance and Binance.</span></div>
+  <div class="nav"><span></span><button class="btn btnp" onclick="gp2()">Next: enter holdings &rarr;</button></div>
+</div>
 
-    <!-- Price fetch details log -->
-    <div class="card" style="background:var(--bg2)">
-      <div class="ct">Price fetch details</div>
-      <div id="pi" style="font-size:12px;color:var(--text2);line-height:1.9"></div>
-    </div>
-
-    <div class="nav">
-      <button class="btn" onclick="goBackToHoldings()">&larr; Back</button>
-      <button class="btn btns" onclick="window.print()">&#128438; Print / save PDF</button>
+<!-- PAGE 2 -->
+<div class="page" id="p2">
+  <div class="card">
+    <div class="ct">Current shares / units held</div>
+    <div style="overflow-x:auto">
+      <table class="tbl"><thead><tr>
+        <th>Asset</th><th class="hs">Ticker</th><th class="hs">Category</th><th>Shares held</th><th>Target %</th>
+      </tr></thead><tbody id="hb"></tbody></table>
     </div>
   </div>
+  <div class="card">
+    <div class="ct">Investment amount</div>
+    <div class="tabs">
+      <button class="tab active" id="to" onclick="setM('onetime')">One-time investment</button>
+      <button class="tab" id="ts" onclick="setM('savings')">Monthly savings plan</button>
+    </div>
+    <div class="row" style="gap:14px">
+      <div><div class="fl">Amount (&euro;)</div><input type="number" id="ia" class="imd" value="500" min="0" step="50"></div>
+      <div style="padding-top:18px;font-size:13px;color:var(--text2)" id="mh">invested as a one-time purchase</div>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="btn" onclick="gp1()">&larr; Back</button>
+    <button class="btn btnp" id="fb" onclick="fetchCalc()">
+      <span id="fs" style="display:none" class="spin"></span>Fetch prices &amp; calculate &rarr;
+    </button>
+  </div>
+</div>
 
-</div><!-- /.shell -->
+<!-- PAGE 3 -->
+<div class="page" id="p3">
+  <div class="metrics" id="sm"></div>
+  <div class="card">
+    <div class="ct">Allocation: current vs. target</div>
+    <div style="overflow-x:auto">
+      <table class="tbl"><thead><tr>
+        <th>Asset</th><th class="hs">Category</th><th>Price</th><th>Current %</th><th>Target %</th><th>Drift</th><th class="hs">Bar</th>
+      </tr></thead><tbody id="ab"></tbody></table>
+    </div>
+    <div class="cw"><canvas id="ac"></canvas></div>
+    <div class="leg">
+      <span><span class="ld" style="background:#9FE1CB"></span>Current %</span>
+      <span><span class="ld" style="background:#1D9E75"></span>Target %</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct" id="att">Recommended trades</div>
+    <div style="overflow-x:auto">
+      <table class="tbl"><thead><tr>
+        <th>Asset</th><th>Action</th><th>Amount (&euro;)</th><th>Approx. units</th><th>Limit price</th>
+      </tr></thead><tbody id="actb"></tbody></table>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px">Buy limit = avg 3-day low &nbsp;&middot;&nbsp; Sell limit = avg 3-day high &nbsp;&middot;&nbsp; Crypto: Binance, ETFs: Yahoo Finance</div>
+  </div>
+  <div class="card" style="background:var(--bg2)">
+    <div class="ct">Price fetch details</div>
+    <div id="pi" style="font-size:12px;color:var(--text2);line-height:1.9"></div>
+  </div>
+  <div class="nav">
+    <button class="btn" onclick="gp2()">&larr; Back</button>
+    <button class="btn btns" onclick="window.print()">&#128438; Print / save PDF</button>
+  </div>
+</div>
 
-<!--
-  Script load order matters — each file depends on the ones above it:
-    1. state.js      — State object, persistence helpers
-    2. prices.js     — fetchAllPrices()
-    3. optimizer.js  — optimizeAllocation(), computeTargets()
-    4. ui-setup.js   — renderSetupPage(), validateSetup(), handleAddEtf(), handleRemoveEtf()
-    5. ui-holdings.js — renderHoldingsPage(), setInvestmentMode()
-    6. ui-results.js  — renderResults()
-    7. app.js         — navigation, fetchAndCalculate(), bootstrap
--->
-<script src="js/state.js"></script>
-<script src="js/prices.js"></script>
-<script src="js/optimizer.js"></script>
-<script src="js/ui-setup.js"></script>
-<script src="js/ui-holdings.js"></script>
-<script src="js/ui-results.js"></script>
-<script src="js/app.js"></script>
+</div><!-- /shell -->
 
+<!-- Rename modal -->
+<div class="modal-bg" id="renameModal">
+  <div class="modal">
+    <h2>Rename portfolio</h2>
+    <div class="fl">Portfolio name</div>
+    <input type="text" id="renameInput" placeholder="My Portfolio">
+    <div class="modal-foot">
+      <button class="btn btns" onclick="closeModal('renameModal')">Cancel</button>
+      <button class="btn btns btnp" onclick="confirmRename()">Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- New portfolio modal -->
+<div class="modal-bg" id="newModal">
+  <div class="modal">
+    <h2>New portfolio</h2>
+    <div class="fl">Portfolio name</div>
+    <input type="text" id="newNameInput" placeholder="My Portfolio">
+    <div style="margin-top:12px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="newCopyChk"> Copy current portfolio as starting point
+      </label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btns" onclick="closeModal('newModal')">Cancel</button>
+      <button class="btn btns btnp" onclick="confirmNew()">Create</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Default ETFs (risky targets sum to 100%: 49+14+32+3+2=100) ───────────────
+const DEF_ETFS = [
+  {id:1, ticker:'XZW0.DE', name:'Xtrackers MSCI World ESG',     rf:false, cr:false, cat:'Akt. Ind.',    tgt:49},
+  {id:3, ticker:'WSML.L',  name:'iShares MSCI World Small Cap', rf:false, cr:false, cat:'Akt. Ind. SM', tgt:14},
+  {id:7, ticker:'AYEM.DE', name:'iShares MSCI EM IMI ESG',      rf:false, cr:false, cat:'Akt. EM',      tgt:32},
+  {id:10,ticker:'BTCEUR',  name:'Bitcoin',                      rf:false, cr:true,  cat:'Krypto',       tgt:3},
+  {id:11,ticker:'ETHEUR',  name:'Ethereum',                     rf:false, cr:true,  cat:'Krypto',       tgt:2},
+  {id:12,ticker:'',        name:'Tagesgeld / Cash',             rf:true,  cr:false, cat:'Bank',         tgt:100}
+];
+
+function mkPortfolio(name){
+  return {name, rp:1, di:500, nid:20, mode:'onetime', inv:500, h:{}, etfs:DEF_ETFS.map(e=>({...e}))};
+}
+
+// ── Storage ───────────────────────────────────────────────────────────────────
+const SK = 'etf_reb_v6';
+function loadAll(){ try{ return JSON.parse(localStorage.getItem(SK)); }catch(e){ return null; } }
+function saveAll(){ try{ localStorage.setItem(SK,JSON.stringify(APP)); }catch(e){} }
+
+let APP = loadAll();
+if(!APP || !APP.portfolios){
+  APP = {active:0, portfolios:[mkPortfolio('My Portfolio')]};
+  saveAll();
+}
+if(APP.active >= APP.portfolios.length) APP.active = 0;
+
+// Current active portfolio shorthand
+function S(){ return APP.portfolios[APP.active]; }
+
+// ── Portfolio switcher ────────────────────────────────────────────────────────
+function renderPfSel(){
+  const sel = document.getElementById('pfsel');
+  sel.innerHTML = APP.portfolios.map((p,i)=>
+    `<option value="${i}"${i===APP.active?' selected':''}>${p.name}</option>`
+  ).join('');
+}
+
+function switchPortfolio(idx){
+  APP.active = parseInt(idx);
+  saveAll();
+  pg(1); renderS();
+}
+
+function newPortfolio(){
+  document.getElementById('newNameInput').value = '';
+  document.getElementById('newCopyChk').checked = false;
+  openModal('newModal');
+}
+function confirmNew(){
+  const name = document.getElementById('newNameInput').value.trim() || ('Portfolio '+(APP.portfolios.length+1));
+  const copy = document.getElementById('newCopyChk').checked;
+  const pf = copy ? JSON.parse(JSON.stringify(S())) : mkPortfolio(name);
+  if(copy) pf.name = name;
+  APP.portfolios.push(pf);
+  APP.active = APP.portfolios.length - 1;
+  saveAll(); closeModal('newModal');
+  renderPfSel(); pg(1); renderS();
+}
+
+function renamePortfolio(){
+  document.getElementById('renameInput').value = S().name;
+  openModal('renameModal');
+}
+function confirmRename(){
+  const name = document.getElementById('renameInput').value.trim();
+  if(name) S().name = name;
+  saveAll(); closeModal('renameModal');
+  renderPfSel();
+}
+
+function deletePortfolio(){
+  if(APP.portfolios.length === 1){
+    alert('You need at least one portfolio. Rename it instead.');
+    return;
+  }
+  if(!confirm(`Delete portfolio "${S().name}"? This cannot be undone.`)) return;
+  APP.portfolios.splice(APP.active, 1);
+  APP.active = Math.max(0, APP.active - 1);
+  saveAll(); renderPfSel(); pg(1); renderS();
+}
+
+// ── Import / Export ───────────────────────────────────────────────────────────
+function exportPortfolio(){
+  const blob = new Blob([JSON.stringify(S(), null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (S().name.replace(/[^a-z0-9]/gi,'_')||'portfolio') + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importPortfolio(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const pf = JSON.parse(e.target.result);
+      if(!pf.etfs || !Array.isArray(pf.etfs)) throw new Error('Missing etfs array');
+      if(!pf.name) pf.name = file.name.replace('.json','');
+      const asNew = confirm(`Import "${pf.name}"?\n\nOK = Add as new portfolio\nCancel = Replace current portfolio ("${S().name}")`);
+      if(asNew){
+        APP.portfolios.push(pf);
+        APP.active = APP.portfolios.length - 1;
+      } else {
+        APP.portfolios[APP.active] = pf;
+      }
+      saveAll(); renderPfSel(); pg(1); renderS();
+    } catch(err){
+      alert('Import failed: ' + err.message);
+    }
+    evt.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+// ── Page navigation ───────────────────────────────────────────────────────────
+function pg(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('p'+n).classList.add('active');
+  [1,2,3].forEach(i=>{
+    const el = document.getElementById('s'+i);
+    el.className = 'step'+(i===n?' active':i<n?' done':'');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function gp1(){ pg(1); renderS(); }
+function gp2(){ if(!valS()) return; saveAll(); pg(2); renderH(); }
+
+// ── Setup page ────────────────────────────────────────────────────────────────
+function renderS(){
+  renderPfSel();
+  document.getElementById('rp').value = Math.round(S().rp*100);
+  document.getElementById('sp').textContent = Math.round((1-S().rp)*100);
+  document.getElementById('di').value = S().di;
+  document.getElementById('rb').innerHTML  = S().etfs.filter(e=>!e.rf).map(rRow).join('');
+  document.getElementById('rfb').innerHTML = S().etfs.filter(e=>e.rf).map(rfRow).join('');
+  chkB(false); chkB(true);
+}
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+function rRow(e){
+  return `<tr>
+    <td><input type="text" value="${esc(e.name)}" onchange="upd(${e.id},'name',this.value)"></td>
+    <td><input type="text" class="mono" value="${esc(e.ticker)}" onchange="upd(${e.id},'ticker',this.value.trim())" placeholder="e.g. XZW0.DE"></td>
+    <td><input type="text" value="${esc(e.cat)}" onchange="upd(${e.id},'cat',this.value)"></td>
+    <td><input type="number" class="ixs" min="0" max="100" step="0.5" value="${e.tgt}" onchange="upd(${e.id},'tgt',parseFloat(this.value)||0)"></td>
+    <td style="text-align:center"><input type="checkbox" ${e.cr?'checked':''} onchange="upd(${e.id},'cr',this.checked)"></td>
+    <td><button class="btnd" onclick="rmE(${e.id})">&times;</button></td>
+  </tr>`;
+}
+function rfRow(e){
+  return `<tr>
+    <td><input type="text" value="${esc(e.name)}" onchange="upd(${e.id},'name',this.value)"></td>
+    <td><input type="text" class="mono" value="${esc(e.ticker)}" onchange="upd(${e.id},'ticker',this.value.trim())" placeholder="blank = cash"></td>
+    <td><input type="text" value="${esc(e.cat)}" onchange="upd(${e.id},'cat',this.value)"></td>
+    <td><input type="number" class="ixs" min="0" max="100" step="0.5" value="${e.tgt}" onchange="upd(${e.id},'tgt',parseFloat(this.value)||0)"></td>
+    <td><button class="btnd" onclick="rmE(${e.id})">&times;</button></td>
+  </tr>`;
+}
+
+document.getElementById('rp').addEventListener('input', function(){
+  S().rp = Math.min(100,Math.max(0,parseFloat(this.value)||0))/100;
+  document.getElementById('sp').textContent = Math.round((1-S().rp)*100);
+  saveAll();
+});
+document.getElementById('di').addEventListener('change', function(){
+  S().di = parseFloat(this.value)||0; saveAll();
+});
+
+function upd(id,f,v){
+  const e = S().etfs.find(x=>x.id===id);
+  if(e){ e[f]=v; saveAll(); chkB(e.rf); }
+}
+function addE(rf){
+  S().etfs.push({id:S().nid++, ticker:'', name:'New asset', rf, cr:false, cat:'', tgt:0});
+  saveAll(); renderS();
+}
+function rmE(id){
+  S().etfs = S().etfs.filter(x=>x.id!==id);
+  delete S().h[id];
+  saveAll(); renderS();
+}
+
+function chkB(rf){
+  const b = S().etfs.filter(e=>e.rf===rf);
+  const sum = b.reduce((a,e)=>a+Number(e.tgt),0);
+  const el = document.getElementById(rf?'rfm':'rm');
+  if(!el) return true;
+  if(sum===0){ el.innerHTML=''; return true; }
+  if(Math.abs(sum-100)>0.01){
+    el.innerHTML=`<div class="msg mw">${rf?'Risk-free':'Risky'} targets sum to ${sum.toFixed(1)}% — must equal 100%</div>`;
+    return false;
+  }
+  el.innerHTML=`<div class="msg mo">${rf?'Risk-free':'Risky'} targets sum to 100% ✓</div>`;
+  return true;
+}
+function valS(){
+  if(!chkB(false)){ alert('Risky asset targets must sum to 100%.'); return false; }
+  if(!chkB(true)){  alert('Risk-free asset targets must sum to 100%.'); return false; }
+  return true;
+}
+
+// ── Holdings page ─────────────────────────────────────────────────────────────
+function setM(m){
+  S().mode = m;
+  document.getElementById('to').classList.toggle('active', m==='onetime');
+  document.getElementById('ts').classList.toggle('active', m==='savings');
+  document.getElementById('mh').textContent = m==='onetime'
+    ? 'invested as a one-time purchase'
+    : 'per month (3× used for target calculation)';
+  saveAll();
+}
+function renderH(){
+  setM(S().mode);
+  document.getElementById('ia').value = S().inv;
+  const all = [...S().etfs.filter(e=>!e.rf), ...S().etfs.filter(e=>e.rf)];
+  document.getElementById('hb').innerHTML = all.map(e=>`<tr>
+    <td><span style="font-weight:500">${e.name}</span><br><span class="cat">${e.cat||''}</span></td>
+    <td class="hs mono">${e.ticker||'—'}</td>
+    <td class="hs"><span class="badge ${e.rf?'bt':'bb'}">${e.rf?'Risk-free':'Risky'}</span></td>
+    <td><input type="number" class="ism" min="0" step="any" style="width:110px"
+        value="${S().h[e.id]||0}" onchange="S().h[${e.id}]=parseFloat(this.value)||0;saveAll()"></td>
+    <td><span class="badge bx">${e.tgt}%</span></td>
+  </tr>`).join('');
+}
+document.getElementById('ia').addEventListener('change', function(){
+  S().inv = parseFloat(this.value)||0; saveAll();
+});
+
+// ── Price fetching ────────────────────────────────────────────────────────────
+async function yPrice(t){
+  const u = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d&range=14d`;
+  const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,{signal:AbortSignal.timeout(15000)});
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const o = await r.json(), d = JSON.parse(o.contents);
+  if(d.chart.error) throw new Error(d.chart.error.description||'Yahoo error');
+  const res=d.chart.result[0], q=res.indicators.quote[0];
+  const cl=q.close.filter(x=>x!=null), hi=q.high.filter(x=>x!=null), lo=q.low.filter(x=>x!=null);
+  if(!cl.length) throw new Error('No price data');
+  const p=cl[cl.length-1], h3=hi.slice(-3), l3=lo.slice(-3);
+  let aH=h3.reduce((a,v)=>a+v,0)/h3.length, aL=l3.reduce((a,v)=>a+v,0)/l3.length;
+  if(aL>p) aL=p; if(aH<p) aH=p;
+  return {p, aH, aL, cur: res.meta.currency||'EUR'};
+}
+async function bPrice(sym){
+  const [tr,kr] = await Promise.all([
+    fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`,{signal:AbortSignal.timeout(10000)}),
+    fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=1d&limit=7`,{signal:AbortSignal.timeout(10000)})
+  ]);
+  if(!tr.ok||!kr.ok) throw new Error('Binance error');
+  const tk=await tr.json(), kl=await kr.json(), p=parseFloat(tk.price), l3=kl.slice(-3);
+  let aH=l3.reduce((a,k)=>a+parseFloat(k[2]),0)/l3.length, aL=l3.reduce((a,k)=>a+parseFloat(k[3]),0)/l3.length;
+  if(aL>p) aL=p; if(aH<p) aH=p;
+  return {p, aH, aL, cur:'EUR'};
+}
+
+async function fetchCalc(){
+  S().inv = parseFloat(document.getElementById('ia').value)||0; saveAll();
+  const btn=document.getElementById('fb'), sp=document.getElementById('fs');
+  btn.disabled=true; sp.style.display='inline-block';
+  const pr={},hi={},lo={},cu={},info=[];
+  for(const e of S().etfs){
+    if(!e.ticker && e.rf){
+      pr[e.id]=1; hi[e.id]=1; lo[e.id]=1; cu[e.id]='EUR';
+      info.push(`${e.name}: cash (€1.00)`);
+      continue;
+    }
+    try{
+      const r = e.cr ? await bPrice(e.ticker) : await yPrice(e.ticker);
+      pr[e.id]=r.p; hi[e.id]=r.aH; lo[e.id]=r.aL; cu[e.id]=r.cur;
+      info.push(`${e.name} (${e.ticker}): €${r.p.toFixed(2)} ${r.cur} · buy ≤€${r.aL.toFixed(2)} · sell ≥€${r.aH.toFixed(2)}`);
+    } catch(err){
+      btn.disabled=false; sp.style.display='none';
+      alert(`Could not fetch price for "${e.name}" (${e.ticker}).\n\nETFs: use Yahoo Finance ticker (e.g. XZW0.DE)\nCrypto: use Binance EUR pair (e.g. BTCEUR)\n\nError: ${err.message}`);
+      return;
+    }
+  }
+  btn.disabled=false; sp.style.display='none';
+  document.getElementById('pi').innerHTML = info.map(x=>`<div>${x}</div>`).join('');
+  calcR(pr,hi,lo,cu);
+}
+
+// ── Optimiser ─────────────────────────────────────────────────────────────────
+function optim(ist,sol,inv,lb,ub){
+  const n=ist.length; let r=new Array(n).fill(inv/n);
+  for(let i=0;i<n;i++) r[i]=Math.max(lb[i],Math.min(ub[i],r[i]));
+  for(let it=0;it<10000;it++){
+    for(let i=0;i<n;i++){
+      const so=r.reduce((s,v,j)=>j===i?s:s+v,0);
+      r[i]=Math.max(lb[i],Math.min(ub[i],inv-so));
+    }
+    const s=r.reduce((a,v)=>a+v,0), d=inv-s;
+    if(Math.abs(d)>0.01){
+      const eg=r.map((v,i)=>d>0?v<ub[i]:v>lb[i]), ct=eg.filter(Boolean).length||1;
+      for(let i=0;i<n;i++) if(eg[i]) r[i]=Math.max(lb[i],Math.min(ub[i],r[i]+d/ct));
+    }
+  }
+  return r;
+}
+
+// ── Results page ──────────────────────────────────────────────────────────────
+let CH=null;
+function calcR(pr,hi,lo,cu){
+  const etfs=S().etfs, inv=S().inv, rp=S().rp, mode=S().mode;
+  const ist=etfs.map(e=>(S().h[e.id]||0)*pr[e.id]);
+  const tot=ist.reduce((a,v)=>a+v,0);
+  const ft=mode==='onetime'?tot+inv:tot+3*inv;
+  const hc=etfs.some(e=>e.cr&&(S().h[e.id]||0)>0);
+  const cs=hc?1/1.05:1;
+  const sol=etfs.map(e=>e.rf?(e.tgt/100)*(1-rp)*ft:(e.tgt/100)*rp*cs*ft);
+  const r=optim(ist,sol,inv,etfs.map(()=>0),etfs.map(()=>inv));
+  pg(3);
+
+  document.getElementById('sm').innerHTML=`
+    <div class="mc"><div class="ml">Current portfolio</div><div class="mv">€${f(tot)}</div><div class="ms">${etfs.filter(e=>(S().h[e.id]||0)>0).length} positions</div></div>
+    <div class="mc"><div class="ml">After investment</div><div class="mv">€${f(tot+inv)}</div><div class="ms">+€${f(inv)}</div></div>
+    <div class="mc"><div class="ml">Risky / risk-free</div><div class="mv" style="font-size:16px">${(rp*100).toFixed(0)}% / ${((1-rp)*100).toFixed(0)}%</div><div class="ms">target split</div></div>
+    <div class="mc"><div class="ml">Mode</div><div class="mv" style="font-size:14px;padding-top:4px">${mode==='onetime'?'One-time':'Savings'}</div><div class="ms">€${f(inv)}${mode==='savings'?'/mo':''}</div></div>`;
+
+  const ord=[...etfs.filter(e=>!e.rf),...etfs.filter(e=>e.rf)];
+  document.getElementById('ab').innerHTML=ord.map(e=>{
+    const i=etfs.indexOf(e), cur=tot>0?ist[i]/tot*100:0, tgt=sol[i]/ft*100, dr=cur-tgt;
+    const db=Math.abs(dr)<0.5
+      ?`<span class="badge bx">${dr.toFixed(1)}%</span>`
+      :dr>0?`<span class="badge ba">+${dr.toFixed(1)}%</span>`
+           :`<span class="badge bb">${dr.toFixed(1)}%</span>`;
+    const bc=dr>2?'#EF9F27':dr<-2?'#378ADD':'#1D9E75', bw=Math.min(100,Math.abs(dr)/20*100);
+    const ps=(e.rf&&!e.ticker)?'—':pr[e.id].toFixed(2)+' '+(cu[e.id]||'');
+    return`<tr><td style="font-weight:500">${e.name}</td><td class="hs"><span class="cat">${e.cat||''}</span></td><td class="mono">${ps}</td><td>${cur.toFixed(1)}%</td><td>${tgt.toFixed(1)}%</td><td>${db}</td><td class="hs"><div class="bw"><div class="bf" style="width:${bw}%;background:${bc}"></div></div></td></tr>`;
+  }).join('');
+
+  if(CH){ CH.destroy(); CH=null; }
+  const ce=ord.filter((_,j)=>{ const i=etfs.indexOf(ord[j]); return ist[i]>1||sol[i]>1; });
+  CH=new Chart(document.getElementById('ac'),{type:'bar',data:{
+    labels:ce.map(e=>e.name.replace('iShares','iSh.').replace('Xtrackers','Xtr.').split(' ').slice(0,4).join(' ')),
+    datasets:[
+      {label:'Current %', data:ce.map(e=>{const i=etfs.indexOf(e);return tot>0?+((ist[i]/tot*100).toFixed(2)):0;}), backgroundColor:'#9FE1CB', borderRadius:3},
+      {label:'Target %',  data:ce.map(e=>{const i=etfs.indexOf(e);return+((sol[i]/ft*100).toFixed(2));}),           backgroundColor:'#1D9E75', borderRadius:3}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:10},maxRotation:40}},y:{ticks:{callback:v=>v+'%',font:{size:11}}}}}});
+
+  document.getElementById('att').textContent = mode==='onetime'
+    ? `Recommended trades — one-time €${f(inv)} investment`
+    : `Recommended savings plan — €${f(inv)}/month`;
+
+  document.getElementById('actb').innerHTML=ord.map(e=>{
+    const i=etfs.indexOf(e), amt=r[i];
+    if(Math.abs(amt)<0.5)
+      return`<tr><td style="font-weight:500">${e.name}</td><td><span class="badge bx">Hold</span></td><td style="color:var(--text3)">—</td><td style="color:var(--text3)">—</td><td class="mono" style="color:var(--text2)">${(e.rf&&!e.ticker)?'—':'€'+pr[e.id].toFixed(2)}</td></tr>`;
+    const buy=amt>0, units=Math.abs(amt)/pr[e.id], lim=buy?lo[e.id]:hi[e.id];
+    return`<tr><td style="font-weight:500">${e.name}</td><td><span class="badge ${buy?'bg':'br'}">${buy?'Buy':'Sell'}</span></td><td style="font-weight:500">€${Math.abs(amt).toFixed(2)}</td><td>~${units.toFixed(4)}</td><td class="mono">€${lim.toFixed(2)} (${buy?'max':'min'})</td></tr>`;
+  }).join('');
+}
+
+function f(n){ return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderS();
+</script>
 </body>
 </html>
