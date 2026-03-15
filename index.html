@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETF Portfolio Rebalancer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f3;
+    --bg3: #eeede8;
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --green-bg: #EAF3DE; --green-text: #3B6D11;
+    --red-bg: #FCEBEB;   --red-text: #A32D2D;
+    --amber-bg: #FAEEDA; --amber-text: #854F0B;
+    --blue-bg: #E6F1FB;  --blue-text: #185FA5;
+    --teal-bg: #E1F5EE;  --teal-text: #0F6E56;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c; --bg2: #272724; --bg3: #303030;
+      --text: #e8e6de; --text2: #a8a69e; --text3: #6e6c66;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+      --green-bg: #173404; --green-text: #C0DD97;
+      --red-bg: #501313;   --red-text: #F09595;
+      --amber-bg: #412402; --amber-text: #FAC775;
+      --blue-bg: #042C53;  --blue-text: #85B7EB;
+      --teal-bg: #04342C;  --teal-text: #5DCAA5;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg3); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+  /* Layout */
+  .shell { max-width: 780px; margin: 0 auto; padding: 24px 16px 60px; }
+  .header { margin-bottom: 28px; }
+  .header h1 { font-size: 22px; font-weight: 600; color: var(--text); }
+  .header p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+  /* Cards */
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 14px; }
+
+  /* Pages */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Steps indicator */
+  .steps { display: flex; gap: 6px; align-items: center; margin-bottom: 24px; }
+  .step { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text3); }
+  .step.active { color: var(--text); font-weight: 500; }
+  .step-num { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+  .step.active .step-num { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .step.done .step-num { background: var(--green-bg); color: var(--green-text); border-color: var(--green-text); }
+  .step-sep { flex: 1; height: 1px; background: var(--border); max-width: 40px; }
+
+  /* Tables */
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th { font-size: 11px; color: var(--text3); font-weight: 500; text-align: left; padding: 0 6px 8px; border-bottom: 0.5px solid var(--border); }
+  .tbl td { padding: 8px 6px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: none; }
+
+  /* Inputs */
+  input[type=text], input[type=number], select {
+    background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 13px; padding: 6px 9px; outline: none; width: 100%;
+    transition: border-color .15s;
+  }
+  input[type=text]:focus, input[type=number]:focus, select:focus { border-color: var(--text2); }
+  input[type=range] { width: 100%; accent-color: var(--text); }
+  .inp-sm { width: 72px !important; }
+  .inp-md { width: 110px !important; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: 0.5px solid var(--border2); background: transparent; color: var(--text); transition: background .15s; }
+  .btn:hover { background: var(--bg2); }
+  .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn-primary:hover { opacity: .88; background: var(--text); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-danger { color: var(--red-text); border: none; background: none; padding: 4px 6px; cursor: pointer; font-size: 18px; line-height: 1; }
+  .btn-danger:hover { background: var(--red-bg); border-radius: 4px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab { padding: 6px 14px; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; border: 0.5px solid var(--border); background: transparent; color: var(--text2); transition: all .15s; }
+  .tab.active { background: var(--bg2); color: var(--text); font-weight: 500; border-color: var(--border2); }
+
+  /* Badges */
+  .badge { display: inline-block; font-size: 11px; border-radius: 20px; padding: 2px 8px; font-weight: 500; }
+  .b-green { background: var(--green-bg); color: var(--green-text); }
+  .b-red   { background: var(--red-bg);   color: var(--red-text); }
+  .b-amber { background: var(--amber-bg); color: var(--amber-text); }
+  .b-blue  { background: var(--blue-bg);  color: var(--blue-text); }
+  .b-gray  { background: var(--bg3);      color: var(--text2); }
+  .b-teal  { background: var(--teal-bg);  color: var(--teal-text); }
+
+  /* Metric cards */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .metric { background: var(--bg2); border-radius: var(--radius-sm); padding: 14px; }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .metric-value { font-size: 20px; font-weight: 600; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* Progress bar */
+  .bar-wrap { height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+
+  /* Nav */
+  .nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+
+  /* Misc */
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .msg { font-size: 12px; margin-top: 8px; padding: 6px 10px; border-radius: var(--radius-sm); }
+  .msg-warn { background: var(--amber-bg); color: var(--amber-text); }
+  .msg-ok   { background: var(--green-bg); color: var(--green-text); }
+  .msg-err  { background: var(--red-bg);   color: var(--red-text); }
+  .chart-wrap { position: relative; width: 100%; height: 200px; margin: 12px 0 4px; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--text); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-label { font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .security-note { font-size: 12px; color: var(--text3); background: var(--bg2); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 8px; display: flex; gap: 8px; align-items: flex-start; }
+  .lock-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  @media (max-width: 520px) {
+    .risk-grid { grid-template-columns: 1fr; }
+    .tbl th:nth-child(3), .tbl td:nth-child(3) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <h1>ETF Portfolio Rebalancer</h1>
+    <p>Calculate how to rebalance your portfolio with live prices from Yahoo Finance</p>
+  </div>
+
+  <!-- Step indicator -->
+  <div class="steps" id="steps-indicator">
+    <div class="step active" id="step1-ind"><div class="step-num">1</div><span>Setup</span></div>
+    <div class="step-sep"></div>
+    <div class="step" id="step2-ind"><div class="step-num">2</div><span>Holdings</span></div>
+    <div class="step-sep"></div>
+    <div class="step" id="step3-ind"><div class="step-num">3</div><span>Results</span></div>
+  </div>
+
+  <!-- PAGE 1: Portfolio Setup -->
+  <div class="page active" id="p1">
+
+    <div class="card">
+      <div class="card-title">Risk allocation</div>
+      <div class="risk-grid">
+        <div>
+          <div class="field-label">% in risky ETFs (stocks etc.)</div>
+          <div class="row">
+            <input type="number" id="risk-pct" class="inp-sm" min="0" max="100" step="1" value="100" style="width:72px">
+            <span style="font-size:13px; color:var(--text2)">% risky &nbsp;/&nbsp; <span id="safe-pct">0</span>% risk-free</span>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Risk-free asset label</div>
+          <input type="text" id="riskfree-label" placeholder="e.g. Cash / Tagesgeld" value="Cash">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">ETF definitions &amp; target allocations</div>
+      <table class="tbl" id="etf-table">
+        <thead><tr>
+          <th>Name</th>
+          <th>Yahoo Finance ticker</th>
+          <th>Target %</th>
+          <th>Type</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="etf-body"></tbody>
+      </table>
+      <div style="margin-top:12px">
+        <button class="btn btn-sm" onclick="addEtf()">+ Add ETF</button>
+      </div>
+      <div id="alloc-msg"></div>
+    </div>
+
+    <div class="security-note">
+      <span class="lock-icon">&#128274;</span>
+      <span>Your portfolio data is stored only in your own browser (localStorage). Nothing is sent to any server. Each user's data stays on their own device.</span>
+    </div>
+
+    <div class="nav">
+      <span></span>
+      <button class="btn btn-primary" onclick="goPage2()">Next: enter holdings &rarr;</button>
+    </div>
+  </div>
+
+  <!-- PAGE 2: Holdings + Investment -->
+  <div class="page" id="p2">
+
+    <div class="card">
+      <div class="card-title">Current shares held</div>
+      <table class="tbl">
+        <thead><tr>
+          <th>ETF</th>
+          <th>Ticker</th>
+          <th>Shares held</th>
+          <th>Target %</th>
+        </tr></thead>
+        <tbody id="holdings-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Investment amount</div>
+      <div class="tabs">
+        <button class="tab active" id="tab-ot" onclick="setMode('onetime')">One-time investment</button>
+        <button class="tab" id="tab-sp" onclick="setMode('savings')">Monthly savings plan</button>
+      </div>
+      <div class="row">
+        <div>
+          <div class="field-label">Amount (€)</div>
+          <input type="number" id="inv-amount" class="inp-md" value="1000" min="0" step="50" style="width:130px">
+        </div>
+        <div style="padding-top:16px; font-size:13px; color:var(--text2)" id="mode-hint">invested as a one-time purchase</div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="btn" onclick="goPage1()">&larr; Back</button>
+      <button class="btn btn-primary" id="fetch-btn" onclick="fetchAndCalc()">
+        <span id="fetch-spinner" style="display:none" class="spinner"></span>
+        Fetch prices &amp; calculate &rarr;
+      </button>
+    </div>
+  </div>
+
+  <!-- PAGE 3: Results -->
+  <div class="page" id="p3">
+
+    <div class="metrics" id="summary-metrics"></div>
+
+    <div class="card">
+      <div class="card-title">Allocation: current vs. target</div>
+      <table class="tbl" id="alloc-tbl">
+        <thead><tr>
+          <th>ETF</th><th>Price</th><th>Current %</th><th>Target %</th><th>Drift</th><th>Drift bar</th>
+        </tr></thead>
+        <tbody id="alloc-body"></tbody>
+      </table>
+      <div class="chart-wrap"><canvas id="alloc-chart"></canvas></div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#9FE1CB"></span>Current %</span>
+        <span><span class="legend-dot" style="background:#1D9E75"></span>Target %</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" id="action-title">Recommended trades</div>
+      <table class="tbl">
+        <thead><tr>
+          <th>ETF</th><th>Action</th><th>Amount (€)</th><th>Approx. shares</th><th>Limit price</th>
+        </tr></thead>
+        <tbody id="action-body"></tbody>
+      </table>
+      <div style="font-size:11px; color:var(--text3); margin-top:10px">
+        Buy limit = avg 3-day low &nbsp;|&nbsp; Sell limit = avg 3-day high &nbsp;|&nbsp; Prices from Yahoo Finance
+      </div>
+    </div>
+
+    <div class="card" style="background:var(--bg2)">
+      <div class="card-title">Price fetch info</div>
+      <div id="price-info" style="font-size:12px; color:var(--text2)"></div>
+    </div>
+
+    <div class="nav">
+      <button class="btn" onclick="goPage2()">&larr; Back</button>
+      <button class="btn btn-sm" onclick="window.print()">&#128438; Print / save PDF</button>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const SK = 'etf_rebalancer_v3';
+let S = loadState() || {
+  etfs: [
+    { id:1, name:'MSCI World',       ticker:'IWDA.AS', target:70, riskfree:false },
+    { id:2, name:'Emerging Markets', ticker:'EIMI.AS', target:30, riskfree:false }
+  ],
+  riskPct: 100, riskfreeLabel: 'Cash', nextId: 3,
+  mode: 'onetime', invAmount: 1000, holdings: {}
+};
+let chartInst = null;
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(SK)); } catch(e) { return null; }
+}
+function saveState() {
+  try { localStorage.setItem(SK, JSON.stringify(S)); } catch(e) {}
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function showPage(n) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('p'+n).classList.add('active');
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('step'+i+'-ind');
+    el.className = 'step' + (i===n?' active':i<n?' done':'');
+  });
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function goPage1() { showPage(1); renderSetup(); }
+function goPage2() { if (!validateSetup()) return; saveState(); showPage(2); renderHoldings(); }
+
+// ── Page 1: Setup ──────────────────────────────────────────────────────────
+function renderSetup() {
+  document.getElementById('risk-pct').value = Math.round(S.riskPct * 100);
+  document.getElementById('safe-pct').textContent = Math.round((1 - S.riskPct) * 100);
+  document.getElementById('riskfree-label').value = S.riskfreeLabel;
+
+  const body = document.getElementById('etf-body');
+  body.innerHTML = S.etfs.map(e => `
+    <tr>
+      <td><input type="text" value="${e.name}" onchange="updEtf(${e.id},'name',this.value)" placeholder="ETF name"></td>
+      <td><input type="text" value="${e.ticker}" onchange="updEtf(${e.id},'ticker',this.value.trim())" placeholder="e.g. IWDA.AS" style="font-family:monospace;font-size:12px"></td>
+      <td><input type="number" class="inp-sm" min="0" max="100" step="0.5" value="${e.target}" onchange="updEtf(${e.id},'target',parseFloat(this.value)||0)"></td>
+      <td>
+        <select onchange="updEtf(${e.id},'riskfree',this.value==='true')">
+          <option value="false" ${!e.riskfree?'selected':''}>Risky</option>
+          <option value="true"  ${e.riskfree?'selected':''}>Risk-free</option>
+        </select>
+      </td>
+      <td><button class="btn-danger" onclick="removeEtf(${e.id})" title="Remove">&times;</button></td>
+    </tr>`).join('');
+
+  checkAlloc();
+}
+
+document.getElementById('risk-pct').addEventListener('input', function() {
+  S.riskPct = Math.min(100, Math.max(0, parseFloat(this.value)||0)) / 100;
+  document.getElementById('safe-pct').textContent = Math.round((1-S.riskPct)*100);
+  saveState();
+});
+document.getElementById('riskfree-label').addEventListener('input', function() {
+  S.riskfreeLabel = this.value; saveState();
+});
+
+function updEtf(id, field, val) {
+  const e = S.etfs.find(x => x.id === id);
+  if (e) { e[field] = val; saveState(); checkAlloc(); }
+}
+function addEtf() {
+  S.etfs.push({id:S.nextId++, name:'New ETF', ticker:'', target:0, riskfree:false});
+  saveState(); renderSetup();
+}
+function removeEtf(id) {
+  S.etfs = S.etfs.filter(x => x.id !== id);
+  delete S.holdings[id];
+  saveState(); renderSetup();
+}
+function checkAlloc() {
+  const sum = S.etfs.reduce((a,e) => a + Number(e.target), 0);
+  const el = document.getElementById('alloc-msg');
+  if (Math.abs(sum - 100) > 0.01) {
+    el.innerHTML = `<div class="msg msg-warn">Target allocations sum to ${sum.toFixed(1)}% — must equal exactly 100%</div>`;
+    return false;
+  }
+  el.innerHTML = `<div class="msg msg-ok">Target allocations sum to 100% ✓</div>`;
+  return true;
+}
+function validateSetup() {
+  if (!checkAlloc()) { alert('Target allocations must sum to 100%.'); return false; }
+  if (S.etfs.length === 0) { alert('Add at least one ETF.'); return false; }
+  if (S.etfs.some(e => !e.ticker.trim())) { alert('All ETFs need a Yahoo Finance ticker symbol.'); return false; }
+  return true;
+}
+
+// ── Page 2: Holdings ───────────────────────────────────────────────────────
+function setMode(m) {
+  S.mode = m;
+  document.getElementById('tab-ot').classList.toggle('active', m==='onetime');
+  document.getElementById('tab-sp').classList.toggle('active', m==='savings');
+  document.getElementById('mode-hint').textContent = m==='onetime'
+    ? 'invested as a one-time purchase'
+    : 'per month (3× monthly amount used for target calculation)';
+  saveState();
+}
+function renderHoldings() {
+  setMode(S.mode);
+  document.getElementById('inv-amount').value = S.invAmount;
+  document.getElementById('holdings-body').innerHTML = S.etfs.map(e => `
+    <tr>
+      <td style="font-weight:500">${e.name}</td>
+      <td style="font-family:monospace;font-size:12px;color:var(--text2)">${e.ticker}</td>
+      <td><input type="number" class="inp-sm" min="0" step="any" value="${S.holdings[e.id]||0}"
+          onchange="S.holdings[${e.id}]=parseFloat(this.value)||0;saveState()" style="width:100px"></td>
+      <td><span class="badge b-gray">${e.target}%</span></td>
+    </tr>`).join('');
+}
+document.getElementById('inv-amount').addEventListener('change', function() {
+  S.invAmount = parseFloat(this.value)||0; saveState();
+});
+
+// ── Price fetching ─────────────────────────────────────────────────────────
+async function fetchPrice(ticker) {
+  // Use allorigins CORS proxy to call Yahoo Finance chart API
+  const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=14d`;
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yUrl)}`;
+  const resp = await fetch(proxyUrl, {signal: AbortSignal.timeout(12000)});
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const outer = await resp.json();
+  const data = JSON.parse(outer.contents);
+  const res = data.chart.result[0];
+  const quotes = res.indicators.quote[0];
+  const closes = quotes.close.filter(x => x != null);
+  const highs  = quotes.high.filter(x => x != null);
+  const lows   = quotes.low.filter(x => x != null);
+  if (!closes.length) throw new Error('No price data');
+  const price = closes[closes.length-1];
+  const last3h = highs.slice(-3), last3l = lows.slice(-3);
+  let avgHigh = last3h.reduce((a,v)=>a+v,0) / last3h.length;
+  let avgLow  = last3l.reduce((a,v)=>a+v,0) / last3l.length;
+  if (avgLow  > price) avgLow  = price;
+  if (avgHigh < price) avgHigh = price;
+  const currency = res.meta.currency || '?';
+  return { price, avgHigh, avgLow, currency };
+}
+
+async function fetchAndCalc() {
+  S.invAmount = parseFloat(document.getElementById('inv-amount').value)||0;
+  saveState();
+  const btn = document.getElementById('fetch-btn');
+  const spin = document.getElementById('fetch-spinner');
+  btn.disabled = true; spin.style.display = 'inline-block';
+
+  const prices={}, highs={}, lows={}, currencies={};
+  const priceInfo = [];
+
+  for (const e of S.etfs) {
+    if (e.riskfree) {
+      prices[e.id]=1; highs[e.id]=1; lows[e.id]=1; currencies[e.id]='€';
+      priceInfo.push(`${e.name}: fixed at 1.00 (risk-free)`);
+      continue;
+    }
+    try {
+      const r = await fetchPrice(e.ticker);
+      prices[e.id] = r.price; highs[e.id] = r.avgHigh; lows[e.id] = r.avgLow;
+      currencies[e.id] = r.currency;
+      priceInfo.push(`${e.name} (${e.ticker}): ${r.price.toFixed(2)} ${r.currency}`);
+    } catch(err) {
+      btn.disabled=false; spin.style.display='none';
+      alert(`Could not fetch price for "${e.name}" (${e.ticker}).\n\nTip: make sure the ticker is correct on Yahoo Finance, e.g. IWDA.AS, EIMI.AS, VWCE.DE\n\nError: ${err.message}`);
+      return;
+    }
+  }
+
+  btn.disabled=false; spin.style.display='none';
+  document.getElementById('price-info').innerHTML = priceInfo.map(p=>`<div>${p}</div>`).join('');
+  calcAndRender(prices, highs, lows, currencies);
+}
+
+// ── Optimizer (port of R nloptr COBYLA logic) ──────────────────────────────
+// Minimize sum of squared deviations (Ist+r - Soll)^2
+// subject to: sum(r) = invAmount, lb[i] <= r[i] <= ub[i]
+function optimize(ist, soll, invAmount, lb, ub) {
+  const n = ist.length;
+  let r = new Array(n).fill(invAmount / n);
+  for (let i=0; i<n; i++) r[i] = Math.max(lb[i], Math.min(ub[i], r[i]));
+
+  for (let iter=0; iter<8000; iter++) {
+    for (let i=0; i<n; i++) {
+      // optimal r[i] given constraint: r[i] = invAmount - sum(r[j≠i])
+      const sumOthers = r.reduce((s,v,j) => j===i ? s : s+v, 0);
+      const riConstrained = invAmount - sumOthers;
+      r[i] = Math.max(lb[i], Math.min(ub[i], riConstrained));
+    }
+    // Re-clamp and re-normalize
+    for (let i=0; i<n; i++) r[i] = Math.max(lb[i], Math.min(ub[i], r[i]));
+    const s = r.reduce((a,v)=>a+v, 0);
+    const diff = invAmount - s;
+    if (Math.abs(diff) > 0.01) {
+      const eligible = r.map((v,i) => diff>0 ? v<ub[i] : v>lb[i]);
+      const cnt = eligible.filter(Boolean).length || 1;
+      for (let i=0; i<n; i++) {
+        if (eligible[i]) {
+          r[i] = Math.max(lb[i], Math.min(ub[i], r[i] + diff/cnt));
+        }
+      }
+    }
+  }
+  return r;
+}
+
+// ── Calculate & render results ─────────────────────────────────────────────
+function calcAndRender(prices, highs, lows, currencies) {
+  const etfs = S.etfs;
+  const invAmt = S.invAmount;
+  const riskPct = S.riskPct;
+  const mode = S.mode;
+
+  const ist = etfs.map(e => (S.holdings[e.id]||0) * prices[e.id]);
+  const totalIst = ist.reduce((a,v)=>a+v, 0);
+  const futureTot = mode==='onetime' ? totalIst+invAmt : totalIst+3*invAmt;
+
+  // Soll: risky ETFs get target% * riskPct * futureTot
+  //       risk-free ETFs get target% * (1-riskPct) * futureTot
+  const soll = etfs.map(e => e.riskfree
+    ? (e.target/100) * (1-riskPct) * futureTot
+    : (e.target/100) * riskPct    * futureTot
+  );
+
+  // Optimize
+  const r = optimize(ist, soll, invAmt, etfs.map(()=>0), etfs.map(()=>invAmt));
+
+  showPage(3);
+
+  // Summary metrics
+  document.getElementById('summary-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Current portfolio</div><div class="metric-value">€${fmt(totalIst)}</div><div class="metric-sub">${etfs.length} positions</div></div>
+    <div class="metric"><div class="metric-label">After investment</div><div class="metric-value">€${fmt(totalIst+invAmt)}</div><div class="metric-sub">+€${fmt(invAmt)}</div></div>
+    <div class="metric"><div class="metric-label">Risky assets</div><div class="metric-value">${(riskPct*100).toFixed(0)}%</div><div class="metric-sub">€${fmt(totalIst*riskPct)}</div></div>
+    <div class="metric"><div class="metric-label">Investment mode</div><div class="metric-value" style="font-size:14px;padding-top:4px">${mode==='onetime'?'One-time':'Savings plan'}</div><div class="metric-sub">€${fmt(invAmt)}${mode==='savings'?'/mo':''}</div></div>`;
+
+  // Allocation table
+  document.getElementById('alloc-body').innerHTML = etfs.map((e,i) => {
+    const cur = totalIst>0 ? ist[i]/totalIst*100 : 0;
+    const tgt = soll[i]/futureTot*100;
+    const drift = cur - tgt;
+    const driftBadge = Math.abs(drift)<1
+      ? `<span class="badge b-gray">${drift.toFixed(1)}%</span>`
+      : drift>0
+      ? `<span class="badge b-amber">+${drift.toFixed(1)}%</span>`
+      : `<span class="badge b-blue">${drift.toFixed(1)}%</span>`;
+    const barColor = drift>2 ? '#EF9F27' : drift<-2 ? '#378ADD' : '#1D9E75';
+    const barW = Math.min(100, Math.abs(drift)/15*100);
+    return `<tr>
+      <td style="font-weight:500">${e.name}</td>
+      <td style="font-family:monospace;font-size:12px">${prices[e.id].toFixed(2)} ${currencies[e.id]||''}</td>
+      <td>${cur.toFixed(1)}%</td>
+      <td>${tgt.toFixed(1)}%</td>
+      <td>${driftBadge}</td>
+      <td style="min-width:80px"><div class="bar-wrap"><div class="bar-fill" style="width:${barW}%;background:${barColor}"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  // Chart
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+  chartInst = new Chart(document.getElementById('alloc-chart'), {
+    type: 'bar',
+    data: {
+      labels: etfs.map(e=>e.name),
+      datasets: [
+        { label:'Current %', data: etfs.map((_,i)=>totalIst>0?+(ist[i]/totalIst*100).toFixed(2):0), backgroundColor:'#9FE1CB', borderRadius:3 },
+        { label:'Target %',  data: etfs.map((_,i)=>+(soll[i]/futureTot*100).toFixed(2)),            backgroundColor:'#1D9E75', borderRadius:3 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ y:{ ticks:{ callback: v=>v+'%' } } }
+    }
+  });
+
+  // Action title
+  document.getElementById('action-title').textContent = mode==='onetime'
+    ? `Recommended trades — one-time €${fmt(invAmt)} investment`
+    : `Recommended savings plan — €${fmt(invAmt)}/month`;
+
+  // Action table
+  document.getElementById('action-body').innerHTML = etfs.map((e,i) => {
+    const amt = r[i];
+    if (Math.abs(amt) < 0.50) return `<tr>
+      <td style="font-weight:500">${e.name}</td>
+      <td><span class="badge b-gray">Hold</span></td>
+      <td style="color:var(--text3)">—</td>
+      <td style="color:var(--text3)">—</td>
+      <td style="font-size:12px;color:var(--text2)">€${prices[e.id].toFixed(2)}</td>
+    </tr>`;
+    const isBuy = amt > 0;
+    const shares = Math.abs(amt) / prices[e.id];
+    const limitPrice = isBuy ? lows[e.id] : highs[e.id];
+    const limitLabel = isBuy ? `≤ €${limitPrice.toFixed(2)}` : `≥ €${limitPrice.toFixed(2)}`;
+    return `<tr>
+      <td style="font-weight:500">${e.name}</td>
+      <td><span class="badge ${isBuy?'b-green':'b-red'}">${isBuy?'Buy':'Sell'}</span></td>
+      <td style="font-weight:500">€${Math.abs(amt).toFixed(2)}</td>
+      <td>~${shares.toFixed(3)} shares</td>
+      <td style="font-size:12px">${limitLabel}</td>
+    </tr>`;
+  }).join('');
+}
+
+function fmt(n) { return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+// ── Init ───────────────────────────────────────────────────────────────────
+renderSetup();
+</script>
+</body>
+</html>
