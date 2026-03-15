@@ -6,6 +6,7 @@ import { fetchAllPrices } from './pricingService.js';
 import { optimizeAllocation } from './optimizer.js';
 import { renderResultsPage } from './resultsPage.js';
 import { initPortfolioBar, renderPortfolioBar } from './portfolioBar.js';
+import { initImportExport } from './importExport.js';
 
 function goToSetup() {
   showPage(1);
@@ -74,6 +75,7 @@ function init() {
   initSetupPage();
   initHoldingsPage();
   initPortfolioBar();
+  initImportExport();
   initNav();
   renderPortfolioBar();
   goToSetup();
