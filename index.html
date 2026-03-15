@@ -6,15 +6,42 @@
 <title>ETF Portfolio Rebalancer</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-:root{--bg:#fff;--bg2:#f5f5f3;--bg3:#eeede8;--text:#1a1a18;--text2:#5f5e5a;--text3:#888780;--b:rgba(0,0,0,.12);--b2:rgba(0,0,0,.22);--r:10px;--rs:6px;--Gbg:#EAF3DE;--Gt:#3B6D11;--Rbg:#FCEBEB;--Rt:#A32D2D;--Abg:#FAEEDA;--At:#854F0B;--Bbg:#E6F1FB;--Bt:#185FA5;--Tbg:#E1F5EE;--Tt:#0F6E56}
-@media(prefers-color-scheme:dark){:root{--bg:#1e1e1c;--bg2:#272724;--bg3:#303030;--text:#e8e6de;--text2:#a8a69e;--text3:#6e6c66;--b:rgba(255,255,255,.1);--b2:rgba(255,255,255,.2);--Gbg:#173404;--Gt:#C0DD97;--Rbg:#501313;--Rt:#F09595;--Abg:#412402;--At:#FAC775;--Bbg:#042C53;--Bt:#85B7EB;--Tbg:#04342C;--Tt:#5DCAA5}}
+:root{
+  --bg:#fff;--bg2:#f5f5f3;--bg3:#eeede8;--text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --b:rgba(0,0,0,.12);--b2:rgba(0,0,0,.22);--r:10px;--rs:6px;
+  --Gbg:#EAF3DE;--Gt:#3B6D11;--Rbg:#FCEBEB;--Rt:#A32D2D;
+  --Abg:#FAEEDA;--At:#854F0B;--Bbg:#E6F1FB;--Bt:#185FA5;
+  --Tbg:#E1F5EE;--Tt:#0F6E56;
+  --accent:#1D9E75;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1e1e1c;--bg2:#272724;--bg3:#303030;--text:#e8e6de;--text2:#a8a69e;--text3:#6e6c66;
+  --b:rgba(255,255,255,.1);--b2:rgba(255,255,255,.2);
+  --Gbg:#173404;--Gt:#C0DD97;--Rbg:#501313;--Rt:#F09595;
+  --Abg:#412402;--At:#FAC775;--Bbg:#042C53;--Bt:#85B7EB;
+  --Tbg:#04342C;--Tt:#5DCAA5;
+  --accent:#5DCAA5;
+}}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
-.shell{max-width:920px;margin:0 auto;padding:24px 16px 60px}
-.hd{margin-bottom:24px}.hd h1{font-size:22px;font-weight:600}.hd p{font-size:13px;color:var(--text2);margin-top:4px}
-.card{background:var(--bg);border:.5px solid var(--b);border-radius:var(--r);padding:20px;margin-bottom:16px}
-.ct{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px}
-.page{display:none}.page.active{display:block}
+.shell{max-width:960px;margin:0 auto;padding:24px 16px 60px}
+.hd{margin-bottom:20px}
+.hd h1{font-size:22px;font-weight:600}
+.hd p{font-size:13px;color:var(--text2);margin-top:3px}
+
+/* Portfolio switcher */
+.pbar{background:var(--bg);border:.5px solid var(--b);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pbar-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;flex-shrink:0}
+.ptabs{display:flex;gap:4px;flex-wrap:wrap;flex:1;min-width:0}
+.ptab{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:.5px solid var(--b);background:transparent;color:var(--text2);white-space:nowrap;display:inline-flex;align-items:center;gap:5px;transition:background .12s,color .12s}
+.ptab:hover{background:var(--bg2);color:var(--text)}
+.ptab.active{background:var(--accent);color:#fff;border-color:transparent}
+.ptab-x{opacity:.55;font-size:11px;line-height:1;margin-left:1px;cursor:pointer;padding:1px 2px;border-radius:3px}
+.ptab-x:hover{opacity:1;background:rgba(0,0,0,.15)}
+.ptab-add{padding:5px 11px;border-radius:20px;font-size:12px;cursor:pointer;border:.5px dashed var(--b2);background:transparent;color:var(--text3);white-space:nowrap}
+.ptab-add:hover{background:var(--bg2);color:var(--text)}
+
+/* Steps */
 .steps{display:flex;gap:6px;align-items:center;margin-bottom:24px}
 .step{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text3)}
 .step.active{color:var(--text);font-weight:500}
@@ -22,26 +49,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .step.active .sn{background:var(--text);color:var(--bg);border-color:var(--text)}
 .step.done .sn{background:var(--Gbg);color:var(--Gt);border-color:var(--Gt)}
 .ss{flex:1;height:1px;background:var(--b);max-width:40px}
+
+/* Cards */
+.card{background:var(--bg);border:.5px solid var(--b);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.ct{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.page{display:none}.page.active{display:block}
+
+/* Table */
 .tbl{width:100%;border-collapse:collapse}
 .tbl th{font-size:11px;color:var(--text3);font-weight:500;text-align:left;padding:0 6px 8px;border-bottom:.5px solid var(--b)}
 .tbl td{padding:7px 6px;border-bottom:.5px solid var(--b);vertical-align:middle}
 .tbl tr:last-child td{border-bottom:none}
-input[type=text],input[type=number],select{background:var(--bg2);border:.5px solid var(--b2);border-radius:var(--rs);color:var(--text);font-size:13px;padding:6px 9px;outline:none;width:100%}
+
+/* Inputs */
+input[type=text],input[type=number],input[type=password],select{background:var(--bg2);border:.5px solid var(--b2);border-radius:var(--rs);color:var(--text);font-size:13px;padding:6px 9px;outline:none;width:100%}
 input:focus,select:focus{border-color:var(--text2)}
-input[type=checkbox]{width:auto;accent-color:var(--text)}
-.ixs{width:64px!important}.ism{width:80px!important}.imd{width:120px!important}
+input[type=checkbox]{width:auto;accent-color:var(--accent)}
+.ixs{width:64px!important}.ism{width:80px!important}.imd{width:140px!important}
+
+/* Buttons */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;border:.5px solid var(--b2);background:transparent;color:var(--text)}
 .btn:hover{background:var(--bg2)}.btn:disabled{opacity:.5;cursor:not-allowed}
 .btnp{background:var(--text);color:var(--bg);border-color:var(--text)}.btnp:hover{opacity:.88;background:var(--text)}
 .btns{padding:5px 12px;font-size:12px}
 .btnd{color:var(--Rt);border:none;background:none;padding:3px 6px;cursor:pointer;font-size:17px;line-height:1}
+
+/* Tabs */
 .tabs{display:flex;gap:4px;margin-bottom:16px}
 .tab{padding:6px 14px;border-radius:var(--rs);font-size:13px;cursor:pointer;border:.5px solid var(--b);background:transparent;color:var(--text2)}
 .tab.active{background:var(--bg2);color:var(--text);font-weight:500;border-color:var(--b2)}
+
+/* Badges */
 .badge{display:inline-block;font-size:11px;border-radius:20px;padding:2px 8px;font-weight:500}
 .bg{background:var(--Gbg);color:var(--Gt)}.br{background:var(--Rbg);color:var(--Rt)}
 .ba{background:var(--Abg);color:var(--At)}.bb{background:var(--Bbg);color:var(--Bt)}
 .bx{background:var(--bg3);color:var(--text2)}.bt{background:var(--Tbg);color:var(--Tt)}
+
+/* Metrics */
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
 .mc{background:var(--bg2);border-radius:var(--rs);padding:14px}
 .ml{font-size:11px;color:var(--text3);margin-bottom:4px}.mv{font-size:20px;font-weight:600}.ms{font-size:11px;color:var(--text3);margin-top:2px}
@@ -59,15 +103,27 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
 .fl{font-size:12px;color:var(--text2);margin-bottom:5px}
 .note{font-size:12px;color:var(--text3);background:var(--bg2);border-radius:var(--rs);padding:10px 12px;margin-top:8px;display:flex;gap:8px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.sep{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin:18px 0 10px;padding-bottom:6px;border-bottom:.5px solid var(--b)}
 .mono{font-family:ui-monospace,monospace;font-size:12px}
 .cat{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--bg3);color:var(--text3);font-weight:500}
-@media(max-width:620px){.g2{grid-template-columns:1fr}.hs{display:none}}
+.gh-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block;margin-right:5px;flex-shrink:0}
+.gh-dot.ok{background:var(--Gt)}.gh-dot.warn{background:var(--At)}
+.gh-badge{display:inline-flex;align-items:center;font-size:11px;color:var(--text3)}
+@media(max-width:640px){.g2{grid-template-columns:1fr}.hs{display:none}}
 </style>
 </head>
 <body>
 <div class="shell">
+
 <div class="hd"><h1>ETF Portfolio Rebalancer</h1><p>Live prices · Yahoo Finance &amp; Binance · Data stored only in your browser</p></div>
+
+<!-- Portfolio bar -->
+<div class="pbar">
+  <span class="pbar-label">Portfolio</span>
+  <div class="ptabs" id="ptabs"></div>
+  <button class="ptab-add" onclick="newPortfolio()">＋ New</button>
+</div>
+
+<!-- Steps -->
 <div class="steps">
   <div class="step active" id="s1"><div class="sn">1</div><span>Setup</span></div>
   <div class="ss"></div>
@@ -78,18 +134,33 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
 
 <!-- PAGE 1 -->
 <div class="page active" id="p1">
+
+  <div class="card">
+    <div class="ct">Portfolio identity</div>
+    <div style="max-width:320px">
+      <div class="fl">Portfolio name</div>
+      <input type="text" id="pname" placeholder="e.g. My ETF Portfolio"
+        oninput="curP().name=this.value;renderPTabs();saveAll()">
+    </div>
+  </div>
+
   <div class="card">
     <div class="ct">Risk allocation</div>
     <div class="g2">
-      <div><div class="fl">% in risky assets (equities, crypto)</div>
-        <div class="row"><input type="number" id="rp" class="ixs" min="0" max="100" step="1" value="100">
-        <span style="font-size:13px;color:var(--text2)">% risky &nbsp;/&nbsp; <span id="sp">0</span>% risk-free</span></div>
+      <div>
+        <div class="fl">% in risky assets (equities, crypto)</div>
+        <div class="row">
+          <input type="number" id="rp" class="ixs" min="0" max="100" step="1" value="100">
+          <span style="font-size:13px;color:var(--text2)">% risky &nbsp;/&nbsp; <span id="sp">0</span>% risk-free</span>
+        </div>
       </div>
-      <div><div class="fl">Default investment amount (€)</div>
+      <div>
+        <div class="fl">Default investment amount (€)</div>
         <input type="number" id="di" class="imd" value="500" min="0" step="50">
       </div>
     </div>
   </div>
+
   <div class="card">
     <div class="ct">Risky assets — targets within risky bucket (must sum to 100%)</div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Crypto assets (BTC, ETH) use Binance EUR pairs. ETFs use Yahoo Finance tickers.</p>
@@ -101,6 +172,7 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
     <button class="btn btns" style="margin-top:10px" onclick="addE(false)">+ Add risky asset</button>
     <div id="rm"></div>
   </div>
+
   <div class="card">
     <div class="ct">Risk-free assets — targets within risk-free bucket (must sum to 100%)</div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Leave ticker blank for plain cash (Tagesgeld).</p>
@@ -112,7 +184,38 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
     <button class="btn btns" style="margin-top:10px" onclick="addE(true)">+ Add risk-free asset</button>
     <div id="rfm"></div>
   </div>
-  <div class="note">&#128274;&nbsp;<span>All data stored only in <strong>your browser</strong> (localStorage). Nothing sent to any server. Prices fetched by your browser directly from Yahoo Finance and Binance.</span></div>
+
+  <!-- GitHub price cache -->
+  <div class="card">
+    <div class="ct">
+      <span>GitHub price cache</span>
+      <span class="gh-badge"><span class="gh-dot" id="gh-dot"></span><span id="gh-stxt">not configured</span></span>
+    </div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:14px">
+      Prices are written to a JSON file in your GitHub repo, keyed by date. On the same day, cached prices are used instead of re-fetching — saving time and API calls. Over time this builds a full price history you can use for charting later.<br>
+      The PAT never leaves your browser — it is stored in <code style="font-size:11px;background:var(--bg2);padding:1px 4px;border-radius:3px">localStorage</code> and sent only to <code style="font-size:11px;background:var(--bg2);padding:1px 4px;border-radius:3px">api.github.com</code>.
+    </p>
+    <div class="g2" style="margin-bottom:12px">
+      <div>
+        <div class="fl">GitHub owner/repo <span style="color:var(--text3)">(e.g. alice/my-portfolio)</span></div>
+        <input type="text" id="gh-repo" placeholder="owner/repo"
+          oninput="curP().ghRepo=this.value.trim();saveAll();updateGhStatus()">
+      </div>
+      <div>
+        <div class="fl">File path <span style="color:var(--text3)">(e.g. prices/portfolio.json)</span></div>
+        <input type="text" id="gh-path" placeholder="prices.json"
+          oninput="curP().ghPath=this.value.trim()||'prices.json';saveAll()">
+      </div>
+    </div>
+    <div>
+      <div class="fl">Personal Access Token <span style="color:var(--text3)">(fine-grained · Contents: Read &amp; Write on that repo)</span></div>
+      <input type="password" id="gh-pat" placeholder="github_pat_…"
+        oninput="curP().ghPat=this.value.trim();saveAll();updateGhStatus()">
+    </div>
+    <div id="gh-msg"></div>
+  </div>
+
+  <div class="note">&#128274;&nbsp;<span>All data stored only in <strong>your browser</strong> (localStorage). Nothing sent to any server except Yahoo Finance, Binance, and — if configured — your own GitHub repo.</span></div>
   <div class="nav"><span></span><button class="btn btnp" onclick="gp2()">Next: enter holdings &rarr;</button></div>
 </div>
 
@@ -172,36 +275,88 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
   </div>
   <div class="card" style="background:var(--bg2)">
     <div class="ct">Price fetch details</div>
-    <div id="pi" style="font-size:12px;color:var(--text2);line-height:1.9"></div>
+    <div id="pi" style="font-size:12px;color:var(--text2);line-height:2"></div>
   </div>
   <div class="nav">
     <button class="btn" onclick="gp2()">&larr; Back</button>
     <button class="btn btns" onclick="window.print()">&#128438; Print / save PDF</button>
   </div>
 </div>
-</div>
 
+</div><!-- /shell -->
 <script>
-const DEF={riskPct:1,defInv:500,etfs:[
-  {id:1, isin:'IE00BZ02LR44',ticker:'XZW0.DE', name:'Xtrackers MSCI World ESG',      rf:false,cr:false,cat:'Akt. Ind.',   tgt:52},
-  {id:2, isin:'IE00BZ0PKT83',ticker:'IFSW.MI', name:'iShares World Multifactor',     rf:false,cr:false,cat:'Akt. Ind.',   tgt:0},
-  {id:3, isin:'IE00BF4RFH31',ticker:'WSML.L',  name:'iShares MSCI World Small Cap',  rf:false,cr:false,cat:'Akt. Ind. SM',tgt:15},
-  {id:4, isin:'LU0380865021',ticker:'XESC.MU', name:'Xtrackers Euro Stoxx 50',       rf:false,cr:false,cat:'Akt. Eur.',   tgt:0},
-  {id:5, isin:'IE00BFMNHK08',ticker:'XZEU.DE', name:'Xtrackers MSCI Europe ESG',     rf:false,cr:false,cat:'Akt. Eur.',   tgt:0},
-  {id:6, isin:'IE00BG370F43',ticker:'XZEM.DE', name:'Xtrackers MSCI EM ESG',         rf:false,cr:false,cat:'Akt. EM',     tgt:0},
-  {id:7, isin:'IE00BFNM3P36',ticker:'AYEM.DE', name:'iShares MSCI EM IMI ESG',       rf:false,cr:false,cat:'Akt. EM',     tgt:33},
-  {id:8, isin:'IE00BKM4GZ66',ticker:'EMIM.AS', name:'iShares Core MSCI EM IMI',      rf:false,cr:false,cat:'Akt. EM',     tgt:0},
-  {id:10,isin:'BitCoin',     ticker:'BTCEUR',  name:'Bitcoin',                       rf:false,cr:true, cat:'Krypto',      tgt:3},
-  {id:11,isin:'Ethereum',    ticker:'ETHEUR',  name:'Ethereum',                      rf:false,cr:true, cat:'Krypto',      tgt:2},
-  {id:9, isin:'LU1829219556',ticker:'MA13.PA', name:'Amundi Govt Bond 1-3Y',         rf:true, cr:false,cat:'StaatsAnl.',  tgt:0},
-  {id:12,isin:'Tagesgeld',   ticker:'',        name:'Tagesgeld / Cash',              rf:true, cr:false,cat:'Bank',        tgt:100}
-]};
+// ─── Default ETF list ───────────────────────────────────────────────────────
+const DEF_ETFS=()=>[
+  {id:1, ticker:'XZW0.DE', name:'Xtrackers MSCI World ESG',     rf:false,cr:false,cat:'Akt. Ind.',    tgt:52},
+  {id:2, ticker:'IFSW.MI', name:'iShares World Multifactor',    rf:false,cr:false,cat:'Akt. Ind.',    tgt:0},
+  {id:3, ticker:'WSML.L',  name:'iShares MSCI World Small Cap', rf:false,cr:false,cat:'Akt. Ind. SM', tgt:15},
+  {id:4, ticker:'XESC.MU', name:'Xtrackers Euro Stoxx 50',      rf:false,cr:false,cat:'Akt. Eur.',    tgt:0},
+  {id:5, ticker:'XZEU.DE', name:'Xtrackers MSCI Europe ESG',    rf:false,cr:false,cat:'Akt. Eur.',    tgt:0},
+  {id:6, ticker:'XZEM.DE', name:'Xtrackers MSCI EM ESG',        rf:false,cr:false,cat:'Akt. EM',      tgt:0},
+  {id:7, ticker:'AYEM.DE', name:'iShares MSCI EM IMI ESG',      rf:false,cr:false,cat:'Akt. EM',      tgt:33},
+  {id:8, ticker:'EMIM.AS', name:'iShares Core MSCI EM IMI',     rf:false,cr:false,cat:'Akt. EM',      tgt:0},
+  {id:10,ticker:'BTCEUR',  name:'Bitcoin',                      rf:false,cr:true, cat:'Krypto',       tgt:3},
+  {id:11,ticker:'ETHEUR',  name:'Ethereum',                     rf:false,cr:true, cat:'Krypto',       tgt:2},
+  {id:9, ticker:'MA13.PA', name:'Amundi Govt Bond 1-3Y',        rf:true, cr:false,cat:'StaatsAnl.',   tgt:0},
+  {id:12,ticker:'',        name:'Tagesgeld / Cash',             rf:true, cr:false,cat:'Bank',         tgt:100}
+];
 
-const SK='etf_reb_v5';
-let S=load()||{etfs:DEF.etfs.map(e=>({...e})),rp:DEF.riskPct,di:DEF.defInv,nid:20,mode:'onetime',inv:DEF.defInv,h:{}};
-function load(){try{return JSON.parse(localStorage.getItem(SK));}catch(e){return null;}}
-function save(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}}
+function makePortfolio(name){
+  return{
+    id:Date.now()+'_'+Math.random().toString(36).slice(2,8),
+    name:name||'Portfolio',
+    rp:1,di:500,nid:20,mode:'onetime',inv:500,h:{},
+    etfs:DEF_ETFS(),
+    ghRepo:'',ghPath:'prices.json',ghPat:''
+  };
+}
 
+// ─── Storage ────────────────────────────────────────────────────────────────
+const SK='etf_reb_v6';
+let APP=loadApp();
+function loadApp(){
+  try{
+    const raw=localStorage.getItem(SK);
+    if(raw){
+      const a=JSON.parse(raw);
+      a.portfolios.forEach(p=>{
+        if(!p.ghPath)p.ghPath='prices.json';
+        if(p.ghPat===undefined)p.ghPat='';
+        if(p.ghRepo===undefined)p.ghRepo='';
+      });
+      return a;
+    }
+  }catch(e){}
+  const p=makePortfolio('My Portfolio');
+  return{portfolios:[p],active:p.id};
+}
+function saveAll(){try{localStorage.setItem(SK,JSON.stringify(APP));}catch(e){}}
+function curP(){return APP.portfolios.find(p=>p.id===APP.active)||APP.portfolios[0];}
+
+// ─── Portfolio tabs ──────────────────────────────────────────────────────────
+function renderPTabs(){
+  document.getElementById('ptabs').innerHTML=APP.portfolios.map(p=>`
+    <button class="ptab${p.id===APP.active?' active':''}" onclick="switchP('${p.id}')">
+      ${esc(p.name||'Unnamed')}
+      ${APP.portfolios.length>1?`<span class="ptab-x" onclick="delP(event,'${p.id}')" title="Delete">✕</span>`:''}
+    </button>`).join('');
+}
+function switchP(id){APP.active=id;saveAll();pg(1);renderS();}
+function newPortfolio(){
+  const p=makePortfolio('Portfolio '+(APP.portfolios.length+1));
+  APP.portfolios.push(p);APP.active=p.id;saveAll();
+  renderPTabs();pg(1);renderS();
+}
+function delP(e,id){
+  e.stopPropagation();
+  if(APP.portfolios.length===1){alert('You need at least one portfolio.');return;}
+  if(!confirm('Delete this portfolio and all its data?'))return;
+  APP.portfolios=APP.portfolios.filter(p=>p.id!==id);
+  if(APP.active===id)APP.active=APP.portfolios[0].id;
+  saveAll();renderPTabs();pg(1);renderS();
+}
+
+// ─── Page nav ────────────────────────────────────────────────────────────────
 function pg(n){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('p'+n).classList.add('active');
@@ -209,26 +364,49 @@ function pg(n){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function gp1(){pg(1);renderS();}
-function gp2(){if(!valS())return;save();pg(2);renderH();}
+function gp2(){if(!valS())return;saveAll();pg(2);renderH();}
 
+// ─── Setup page ──────────────────────────────────────────────────────────────
 function renderS(){
+  const S=curP();
+  document.getElementById('pname').value=S.name||'';
   document.getElementById('rp').value=Math.round(S.rp*100);
   document.getElementById('sp').textContent=Math.round((1-S.rp)*100);
   document.getElementById('di').value=S.di;
   document.getElementById('rb').innerHTML=S.etfs.filter(e=>!e.rf).map(rRow).join('');
   document.getElementById('rfb').innerHTML=S.etfs.filter(e=>e.rf).map(rfRow).join('');
-  chkB(false);chkB(true);
+  document.getElementById('gh-repo').value=S.ghRepo||'';
+  document.getElementById('gh-path').value=S.ghPath||'prices.json';
+  document.getElementById('gh-pat').value=S.ghPat||'';
+  updateGhStatus();chkB(false);chkB(true);
 }
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
-function rRow(e){return`<tr><td><input type="text" value="${esc(e.name)}" onchange="upd(${e.id},'name',this.value)"></td><td><input type="text" class="mono" value="${esc(e.ticker)}" onchange="upd(${e.id},'ticker',this.value.trim())" placeholder="e.g. XZW0.DE"></td><td><input type="text" value="${esc(e.cat)}" onchange="upd(${e.id},'cat',this.value)"></td><td><input type="number" class="ixs" min="0" max="100" step="0.5" value="${e.tgt}" onchange="upd(${e.id},'tgt',parseFloat(this.value)||0)"></td><td style="text-align:center"><input type="checkbox" ${e.cr?'checked':''} onchange="upd(${e.id},'cr',this.checked)"></td><td><button class="btnd" onclick="rmE(${e.id})">&times;</button></td></tr>`;}
-function rfRow(e){return`<tr><td><input type="text" value="${esc(e.name)}" onchange="upd(${e.id},'name',this.value)"></td><td><input type="text" class="mono" value="${esc(e.ticker)}" onchange="upd(${e.id},'ticker',this.value.trim())" placeholder="blank = cash"></td><td><input type="text" value="${esc(e.cat)}" onchange="upd(${e.id},'cat',this.value)"></td><td><input type="number" class="ixs" min="0" max="100" step="0.5" value="${e.tgt}" onchange="upd(${e.id},'tgt',parseFloat(this.value)||0)"></td><td><button class="btnd" onclick="rmE(${e.id})">&times;</button></td></tr>`;}
-document.getElementById('rp').addEventListener('input',function(){S.rp=Math.min(100,Math.max(0,parseFloat(this.value)||0))/100;document.getElementById('sp').textContent=Math.round((1-S.rp)*100);save();});
-document.getElementById('di').addEventListener('change',function(){S.di=parseFloat(this.value)||0;save();});
-function upd(id,f,v){const e=S.etfs.find(x=>x.id===id);if(e){e[f]=v;save();chkB(e.rf);}}
-function addE(rf){S.etfs.push({id:S.nid++,isin:'',ticker:'',name:'New asset',rf,cr:false,cat:'',tgt:0});save();renderS();}
-function rmE(id){const e=S.etfs.find(x=>x.id===id);S.etfs=S.etfs.filter(x=>x.id!==id);delete S.h[id];save();renderS();}
+function rRow(e){return`<tr>
+  <td><input type="text" value="${esc(e.name)}" onchange="upd(${e.id},'name',this.value)"></td>
+  <td><input type="text" class="mono" value="${esc(e.ticker)}" onchange="upd(${e.id},'ticker',this.value.trim())" placeholder="e.g. XZW0.DE"></td>
+  <td><input type="text" value="${esc(e.cat)}" onchange="upd(${e.id},'cat',this.value)"></td>
+  <td><input type="number" class="ixs" min="0" max="100" step="0.5" value="${e.tgt}" onchange="upd(${e.id},'tgt',parseFloat(this.value)||0)"></td>
+  <td style="text-align:center"><input type="checkbox" ${e.cr?'checked':''} onchange="upd(${e.id},'cr',this.checked)"></td>
+  <td><button class="btnd" onclick="rmE(${e.id})">&times;</button></td>
+</tr>`;}
+function rfRow(e){return`<tr>
+  <td><input type="text" value="${esc(e.name)}" onchange="upd(${e.id},'name',this.value)"></td>
+  <td><input type="text" class="mono" value="${esc(e.ticker)}" onchange="upd(${e.id},'ticker',this.value.trim())" placeholder="blank = cash"></td>
+  <td><input type="text" value="${esc(e.cat)}" onchange="upd(${e.id},'cat',this.value)"></td>
+  <td><input type="number" class="ixs" min="0" max="100" step="0.5" value="${e.tgt}" onchange="upd(${e.id},'tgt',parseFloat(this.value)||0)"></td>
+  <td><button class="btnd" onclick="rmE(${e.id})">&times;</button></td>
+</tr>`;}
+
+document.getElementById('rp').addEventListener('input',function(){
+  curP().rp=Math.min(100,Math.max(0,parseFloat(this.value)||0))/100;
+  document.getElementById('sp').textContent=Math.round((1-curP().rp)*100);saveAll();
+});
+document.getElementById('di').addEventListener('change',function(){curP().di=parseFloat(this.value)||0;saveAll();});
+function upd(id,f,v){const e=curP().etfs.find(x=>x.id===id);if(e){e[f]=v;saveAll();chkB(e.rf);}}
+function addE(rf){const S=curP();S.etfs.push({id:S.nid++,ticker:'',name:'New asset',rf,cr:false,cat:'',tgt:0});saveAll();renderS();}
+function rmE(id){const S=curP();S.etfs=S.etfs.filter(x=>x.id!==id);delete S.h[id];saveAll();renderS();}
 function chkB(rf){
-  const b=S.etfs.filter(e=>e.rf===rf),sum=b.reduce((a,e)=>a+Number(e.tgt),0);
+  const S=curP(),b=S.etfs.filter(e=>e.rf===rf),sum=b.reduce((a,e)=>a+Number(e.tgt),0);
   const el=document.getElementById(rf?'rfm':'rm');if(!el)return true;
   if(sum===0){el.innerHTML='';return true;}
   if(Math.abs(sum-100)>0.01){el.innerHTML=`<div class="msg mw">${rf?'Risk-free':'Risky'} targets sum to ${sum.toFixed(1)}% — must equal 100%</div>`;return false;}
@@ -239,122 +417,171 @@ function valS(){
   if(!chkB(true)){alert('Risk-free asset targets must sum to 100%.');return false;}
   return true;
 }
+function updateGhStatus(){
+  const S=curP(),dot=document.getElementById('gh-dot'),txt=document.getElementById('gh-stxt');
+  if(S.ghPat&&S.ghRepo){dot.className='gh-dot ok';txt.textContent='configured';}
+  else if(S.ghRepo||S.ghPat){dot.className='gh-dot warn';txt.textContent='incomplete';}
+  else{dot.className='gh-dot';txt.textContent='not configured (optional)';}
+}
 
+// ─── Holdings page ───────────────────────────────────────────────────────────
 function setM(m){
-  S.mode=m;
+  const S=curP();S.mode=m;
   document.getElementById('to').classList.toggle('active',m==='onetime');
   document.getElementById('ts').classList.toggle('active',m==='savings');
   document.getElementById('mh').textContent=m==='onetime'?'invested as a one-time purchase':'per month (3× used for target calculation)';
-  save();
+  saveAll();
 }
 function renderH(){
-  setM(S.mode);document.getElementById('ia').value=S.inv;
+  const S=curP();setM(S.mode);document.getElementById('ia').value=S.inv;
   const all=[...S.etfs.filter(e=>!e.rf),...S.etfs.filter(e=>e.rf)];
   document.getElementById('hb').innerHTML=all.map(e=>`<tr>
     <td><span style="font-weight:500">${e.name}</span><br><span class="cat">${e.cat||''}</span></td>
     <td class="hs mono">${e.ticker||'—'}</td>
     <td class="hs"><span class="badge ${e.rf?'bt':'bb'}">${e.rf?'Risk-free':'Risky'}</span></td>
-    <td><input type="number" class="ism" min="0" step="any" style="width:110px" value="${S.h[e.id]||0}" onchange="S.h[${e.id}]=parseFloat(this.value)||0;save()"></td>
+    <td><input type="number" class="ism" min="0" step="any" style="width:110px"
+      value="${S.h[e.id]||0}" onchange="curP().h[${e.id}]=parseFloat(this.value)||0;saveAll()"></td>
     <td><span class="badge bx">${e.tgt}%</span></td>
   </tr>`).join('');
 }
-document.getElementById('ia').addEventListener('change',function(){S.inv=parseFloat(this.value)||0;save();});
+document.getElementById('ia').addEventListener('change',function(){curP().inv=parseFloat(this.value)||0;saveAll();});
 
-// ---------------------------------------------------------------------------
-// Yahoo Finance fetching with multiple proxy fallbacks + retry logic
-// ---------------------------------------------------------------------------
+// ─── GitHub price cache ──────────────────────────────────────────────────────
+const TODAY=new Date().toISOString().slice(0,10);
 
-// Ordered list of proxy wrappers. Each receives the raw Yahoo URL and returns
-// a Response (or throws). We try them in sequence until one succeeds.
-const PROXIES = [
-  // 1. corsproxy.io  — fast, reliable
-  async (url) => {
-    const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,
-      {signal: AbortSignal.timeout(18000)});
-    if (!r.ok) throw new Error(`corsproxy.io HTTP ${r.status}`);
-    return r.json();
-  },
-  // 2. api.allorigins.win  — classic fallback, wraps in {contents}
-  async (url) => {
-    const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-      {signal: AbortSignal.timeout(18000)});
-    if (!r.ok) throw new Error(`allorigins HTTP ${r.status}`);
-    const o = await r.json();
-    return JSON.parse(o.contents);   // unwrap the envelope
-  },
-  // 3. thingproxy.freeboard.io
-  async (url) => {
-    const r = await fetch(`https://thingproxy.freeboard.io/fetch/${url}`,
-      {signal: AbortSignal.timeout(18000)});
-    if (!r.ok) throw new Error(`thingproxy HTTP ${r.status}`);
-    return r.json();
-  },
+async function ghGet(){
+  const S=curP();
+  if(!S.ghPat||!S.ghRepo)return null;
+  try{
+    const r=await fetch(`https://api.github.com/repos/${S.ghRepo}/contents/${S.ghPath||'prices.json'}`,{
+      headers:{Authorization:'token '+S.ghPat,Accept:'application/vnd.github+json'},
+      signal:AbortSignal.timeout(12000)
+    });
+    if(r.status===404)return{sha:null,data:{}};
+    if(!r.ok)throw new Error('GH read HTTP '+r.status);
+    const j=await r.json();
+    return{sha:j.sha,data:JSON.parse(atob(j.content.replace(/\n/g,'')))};
+  }catch(e){console.warn('GH read:',e.message);return null;}
+}
+
+async function ghPut(existing,todayPrices){
+  const S=curP();
+  if(!S.ghPat||!S.ghRepo)return;
+  try{
+    const merged=Object.assign({},(existing&&existing.data)||{},{[TODAY]:todayPrices});
+    const body={message:`price update ${TODAY}`,content:btoa(JSON.stringify(merged,null,2))};
+    if(existing&&existing.sha)body.sha=existing.sha;
+    const r=await fetch(`https://api.github.com/repos/${S.ghRepo}/contents/${S.ghPath||'prices.json'}`,{
+      method:'PUT',
+      headers:{Authorization:'token '+S.ghPat,Accept:'application/vnd.github+json','Content-Type':'application/json'},
+      body:JSON.stringify(body),signal:AbortSignal.timeout(15000)
+    });
+    if(!r.ok)throw new Error('GH write HTTP '+r.status);
+  }catch(e){console.warn('GH write:',e.message);}
+}
+
+// ─── Yahoo Finance (multi-proxy) ─────────────────────────────────────────────
+const PROXIES=[
+  async u=>{const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(u),{signal:AbortSignal.timeout(18000)});if(!r.ok)throw new Error('corsproxy '+r.status);return r.json();},
+  async u=>{const r=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(u),{signal:AbortSignal.timeout(18000)});if(!r.ok)throw new Error('allorigins '+r.status);const o=await r.json();return JSON.parse(o.contents);},
+  async u=>{const r=await fetch('https://thingproxy.freeboard.io/fetch/'+u,{signal:AbortSignal.timeout(18000)});if(!r.ok)throw new Error('thingproxy '+r.status);return r.json();}
 ];
-
-async function fetchYahooJSON(ticker) {
-  const yUrl =
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}` +
-    `?interval=1d&range=14d`;
-
-  let lastErr;
-  for (const proxy of PROXIES) {
-    try {
-      const data = await proxy(yUrl);
-      return data;          // success — return raw parsed JSON
-    } catch (e) {
-      lastErr = e;
-      // try next proxy
-    }
-  }
-  throw new Error(`All proxies failed for ${ticker}. Last error: ${lastErr.message}`);
+async function fetchYahoo(t){
+  const u=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d&range=14d`;
+  let last;for(const p of PROXIES){try{return await p(u);}catch(e){last=e;}}
+  throw new Error('All proxies failed. Last: '+last.message);
 }
-
 async function yPrice(t){
-  const d = await fetchYahooJSON(t);
-  if(d.chart.error) throw new Error(d.chart.error.description || 'Yahoo error');
-  const res=d.chart.result[0], q=res.indicators.quote[0];
+  const d=await fetchYahoo(t);
+  if(d.chart.error)throw new Error(d.chart.error.description||'Yahoo error');
+  const res=d.chart.result[0],q=res.indicators.quote[0];
   const cl=q.close.filter(x=>x!=null),hi=q.high.filter(x=>x!=null),lo=q.low.filter(x=>x!=null);
-  if(!cl.length) throw new Error('No price data');
+  if(!cl.length)throw new Error('No price data');
   const p=cl[cl.length-1],h3=hi.slice(-3),l3=lo.slice(-3);
-  let aH=h3.reduce((a,v)=>a+v,0)/h3.length, aL=l3.reduce((a,v)=>a+v,0)/l3.length;
-  if(aL>p) aL=p; if(aH<p) aH=p;
-  return{p, aH, aL, cur:res.meta.currency||'EUR'};
+  let aH=h3.reduce((a,v)=>a+v,0)/h3.length,aL=l3.reduce((a,v)=>a+v,0)/l3.length;
+  if(aL>p)aL=p;if(aH<p)aH=p;
+  return{p,aH,aL,cur:res.meta.currency||'EUR'};
+}
+async function bPrice(sym){
+  const[tr,kr]=await Promise.all([
+    fetch('https://api.binance.com/api/v3/ticker/price?symbol='+sym,{signal:AbortSignal.timeout(10000)}),
+    fetch('https://api.binance.com/api/v3/klines?symbol='+sym+'&interval=1d&limit=7',{signal:AbortSignal.timeout(10000)})
+  ]);
+  if(!tr.ok||!kr.ok)throw new Error('Binance error');
+  const tk=await tr.json(),kl=await kr.json(),p=parseFloat(tk.price),l3=kl.slice(-3);
+  let aH=l3.reduce((a,k)=>a+parseFloat(k[2]),0)/l3.length,aL=l3.reduce((a,k)=>a+parseFloat(k[3]),0)/l3.length;
+  if(aL>p)aL=p;if(aH<p)aH=p;
+  return{p,aH,aL,cur:'EUR'};
 }
 
-async function bPrice(sym){
-  const [tr,kr]=await Promise.all([
-    fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`,{signal:AbortSignal.timeout(10000)}),
-    fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=1d&limit=7`,{signal:AbortSignal.timeout(10000)})
-  ]);
-  if(!tr.ok||!kr.ok) throw new Error('Binance error');
-  const tk=await tr.json(), kl=await kr.json(), p=parseFloat(tk.price), l3=kl.slice(-3);
-  let aH=l3.reduce((a,k)=>a+parseFloat(k[2]),0)/l3.length, aL=l3.reduce((a,k)=>a+parseFloat(k[3]),0)/l3.length;
-  if(aL>p) aL=p; if(aH<p) aH=p;
-  return{p, aH, aL, cur:'EUR'};
-}
+// ─── Fetch & calc ────────────────────────────────────────────────────────────
+function piHtml(lines){document.getElementById('pi').innerHTML=lines.map(l=>`<div>${l}</div>`).join('');}
 
 async function fetchCalc(){
-  S.inv=parseFloat(document.getElementById('ia').value)||0;save();
+  const S=curP();
+  S.inv=parseFloat(document.getElementById('ia').value)||0;saveAll();
   const btn=document.getElementById('fb'),sp=document.getElementById('fs');
   btn.disabled=true;sp.style.display='inline-block';
-  const pr={},hi={},lo={},cu={},info=[];
-  for(const e of S.etfs){
-    if(!e.ticker&&e.rf){pr[e.id]=1;hi[e.id]=1;lo[e.id]=1;cu[e.id]='EUR';info.push(`${e.name}: cash (€1.00)`);continue;}
-    try{
-      const r=e.cr?await bPrice(e.ticker):await yPrice(e.ticker);
-      pr[e.id]=r.p;hi[e.id]=r.aH;lo[e.id]=r.aL;cu[e.id]=r.cur;
-      info.push(`${e.name} (${e.ticker}): €${r.p.toFixed(2)} ${r.cur} · buy ≤€${r.aL.toFixed(2)} · sell ≥€${r.aH.toFixed(2)}`);
-    }catch(err){
-      btn.disabled=false;sp.style.display='none';
-      alert(`Could not fetch price for "${e.name}" (${e.ticker}).\n\nETFs: use Yahoo Finance ticker (e.g. XZW0.DE, EMIM.AS)\nCrypto: use Binance EUR pair (e.g. BTCEUR, ETHEUR)\n\nError: ${err.message}`);
-      return;
+  const pr={},hi={},lo={},cu={},lines=[];
+  let usedCache=0,fetchedFresh=0;
+
+  // 1 — try GitHub cache
+  let ghExisting=null,cached={};
+  if(S.ghPat&&S.ghRepo){
+    lines.push(`<span style="color:var(--Bt)">⟳ Reading GitHub price cache…</span>`);piHtml(lines);
+    ghExisting=await ghGet();
+    if(ghExisting&&ghExisting.data&&ghExisting.data[TODAY]){
+      cached=ghExisting.data[TODAY];
+      lines[lines.length-1]=`<span style="color:var(--Gt)">✓ Cache found for ${TODAY} in ${S.ghRepo}</span>`;
+    }else{
+      lines[lines.length-1]=`<span style="color:var(--text3)">No cache entry for ${TODAY} — will fetch fresh prices</span>`;
     }
+    piHtml(lines);
   }
-  btn.disabled=false;sp.style.display='none';
-  document.getElementById('pi').innerHTML=info.map(p=>`<div>${p}</div>`).join('');
+
+  // 2 — per-asset: use cache or fetch
+  const freshPrices={};
+  for(const e of S.etfs){
+    if(!e.ticker&&e.rf){
+      pr[e.id]=1;hi[e.id]=1;lo[e.id]=1;cu[e.id]='EUR';
+      lines.push(`${e.name}: cash (€1.00)`);piHtml(lines);continue;
+    }
+    if(cached[e.ticker]){
+      const c=cached[e.ticker];
+      pr[e.id]=c.p;hi[e.id]=c.aH;lo[e.id]=c.aL;cu[e.id]=c.cur||'EUR';
+      lines.push(`${e.name} (${e.ticker}): €${c.p.toFixed(2)} ${c.cur} <span class="badge bg" style="font-size:10px;vertical-align:middle">cached</span>`);
+      usedCache++;
+    }else{
+      try{
+        const r=e.cr?await bPrice(e.ticker):await yPrice(e.ticker);
+        pr[e.id]=r.p;hi[e.id]=r.aH;lo[e.id]=r.aL;cu[e.id]=r.cur;
+        freshPrices[e.ticker]={p:r.p,aH:r.aH,aL:r.aL,cur:r.cur};
+        lines.push(`${e.name} (${e.ticker}): €${r.p.toFixed(2)} ${r.cur} · buy ≤€${r.aL.toFixed(2)} · sell ≥€${r.aH.toFixed(2)} <span class="badge bb" style="font-size:10px;vertical-align:middle">live</span>`);
+        fetchedFresh++;
+      }catch(err){
+        btn.disabled=false;sp.style.display='none';
+        alert(`Could not fetch price for "${e.name}" (${e.ticker}).\n\nETFs: use Yahoo Finance ticker (e.g. XZW0.DE, EMIM.AS)\nCrypto: use Binance EUR pair (e.g. BTCEUR, ETHEUR)\n\nError: ${err.message}`);
+        return;
+      }
+    }
+    piHtml(lines);
+  }
+
+  // 3 — write fresh prices back to GitHub
+  if(fetchedFresh>0&&S.ghPat&&S.ghRepo){
+    lines.push(`<span style="color:var(--Bt)">⟳ Saving ${fetchedFresh} new price(s) to GitHub…</span>`);piHtml(lines);
+    await ghPut(ghExisting,Object.assign({},cached,freshPrices));
+    lines[lines.length-1]=`<span style="color:var(--Gt)">✓ Prices saved to ${S.ghRepo} / ${S.ghPath||'prices.json'}</span>`;
+  }
+  if(usedCache>0&&fetchedFresh===0){
+    lines.push(`<span style="color:var(--Gt)">✓ All prices from cache — no network fetches needed</span>`);
+  }
+
+  btn.disabled=false;sp.style.display='none';piHtml(lines);
   calcR(pr,hi,lo,cu);
 }
 
+// ─── Optimisation ────────────────────────────────────────────────────────────
 function optim(ist,sol,inv,lb,ub){
   const n=ist.length;let r=new Array(n).fill(inv/n);
   for(let i=0;i<n;i++)r[i]=Math.max(lb[i],Math.min(ub[i],r[i]));
@@ -367,9 +594,10 @@ function optim(ist,sol,inv,lb,ub){
   return r;
 }
 
+// ─── Results page ────────────────────────────────────────────────────────────
 let CH=null;
 function calcR(pr,hi,lo,cu){
-  const etfs=S.etfs,inv=S.inv,rp=S.rp,mode=S.mode;
+  const S=curP(),etfs=S.etfs,inv=S.inv,rp=S.rp,mode=S.mode;
   const ist=etfs.map(e=>(S.h[e.id]||0)*pr[e.id]);
   const tot=ist.reduce((a,v)=>a+v,0);
   const ft=mode==='onetime'?tot+inv:tot+3*inv;
@@ -395,7 +623,7 @@ function calcR(pr,hi,lo,cu){
   }).join('');
 
   if(CH){CH.destroy();CH=null;}
-  const ce=ord.filter((_,j)=>{const i=etfs.indexOf(ord[j]);return ist[i]>1||sol[i]>1;});
+  const ce=ord.filter(e=>{const i=etfs.indexOf(e);return ist[i]>1||sol[i]>1;});
   CH=new Chart(document.getElementById('ac'),{type:'bar',data:{
     labels:ce.map(e=>e.name.replace('iShares','iSh.').replace('Xtrackers','Xtr.').split(' ').slice(0,4).join(' ')),
     datasets:[
@@ -412,6 +640,9 @@ function calcR(pr,hi,lo,cu){
   }).join('');
 }
 function f(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+// ─── Boot ────────────────────────────────────────────────────────────────────
+renderPTabs();
 renderS();
 </script>
 </body>
