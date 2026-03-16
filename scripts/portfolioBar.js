@@ -20,9 +20,9 @@ export function renderPortfolioBar() {
     .map(p => {
       const isActive = p.id === activePortfolioId;
       const canClose = portfolios.length > 1;
-      return `<button class="ptab${isActive ? ' active' : ''}" data-id="${p.id}" title="Double-click to rename">
+      return `<button class="ptab${isActive ? ' active' : ''}" data-id="${p.id}" title="Click portfolio name to switch, double-click to rename">
         <span class="ptab-label-text">${p.name}</span>
-        ${canClose ? '<span class="ptab-x" data-action="close">×</span>' : ''}
+        ${canClose ? '<span class="ptab-rename" data-action="rename" title="Rename portfolio">✏️</span><span class="ptab-x" data-action="close" title="Delete portfolio">×</span>' : ''}
       </button>`;
     })
     .join('');
@@ -76,6 +76,20 @@ export function initPortfolioBar() {
       const page = getCurrentPage();
       if (page === 1) renderSetupPage();
       else if (page === 2) renderHoldingsPage();
+      return;
+    }
+
+    if (target.dataset.action === 'rename') {
+      const tab = target.closest('.ptab');
+      if (!tab) return;
+      const id = tab.getAttribute('data-id');
+      if (!id) return;
+      const currentName = getState().portfolios.find(p => p.id === id)?.name || '';
+      const next = window.prompt('Portfolio name:', currentName);
+      if (next && next.trim()) {
+        renamePortfolio(id, next.trim());
+        renderPortfolioBar();
+      }
       return;
     }
 
