@@ -8,9 +8,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ct{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px}
 .page{display:none}.page.active{display:block}
 .steps{display:flex;gap:6px;align-items:center;margin-bottom:24px}
-.step{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text3)}
-.step.active{color:var(--text);font-weight:500}
-.sn{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+.step{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text3);cursor:pointer;transition:color .12s}
+.step:hover{color:var(--text2)}
+.step.active:hover{color:var(--text)}
+.sn{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;transition:background-color .12s,color .12s,border-color .12s}
+.step:hover .sn{border-color:var(--text)}
 .step.active .sn{background:var(--text);color:var(--bg);border-color:var(--text)}
 .step.done .sn{background:var(--Gbg);color:var(--Gt);border-color:var(--Gt)}
 .ss{flex:1;height:1px;background:var(--b);max-width:40px}

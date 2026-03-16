@@ -20,6 +20,18 @@ function goToHoldings() {
   renderHoldingsPage();
 }
 
+async function goToResults() {
+  // Check if we have valid data to show results
+  const state = getActivePortfolio();
+  if (!state.h || Object.keys(state.h).length === 0) {
+    alert('Please enter your holdings first before viewing results.');
+    return;
+  }
+  
+  // Trigger the same process as the "Fetch prices & calculate" button
+  await onFetchAndCalculate();
+}
+
 function goBackToSetup() {
   showPage(1);
   renderSetupPage();
@@ -77,10 +89,20 @@ function initNav() {
   const backToHoldings = byId('back-to-holdings');
   const fetchBtn = byId('fb');
 
+  // Step navigation
+  const step1 = byId('s1');
+  const step2 = byId('s2');
+  const step3 = byId('s3');
+
   next?.addEventListener('click', goToHoldings);
   backToSetup?.addEventListener('click', goBackToSetup);
   backToHoldings?.addEventListener('click', goBackToHoldings);
   fetchBtn?.addEventListener('click', onFetchAndCalculate);
+
+  // Step indicator navigation
+  step1?.addEventListener('click', goToSetup);
+  step2?.addEventListener('click', goToHoldings);
+  step3?.addEventListener('click', goToResults);
 }
 
 function init() {
