@@ -20,7 +20,7 @@ export function renderPortfolioBar() {
     .map(p => {
       const isActive = p.id === activePortfolioId;
       const canClose = portfolios.length > 1;
-      return `<button class="ptab${isActive ? ' active' : ''}" data-id="${p.id}">
+      return `<button class="ptab${isActive ? ' active' : ''}" data-id="${p.id}" title="Double-click to rename">
         <span class="ptab-label-text">${p.name}</span>
         ${canClose ? '<span class="ptab-x" data-action="close">×</span>' : ''}
       </button>`;
