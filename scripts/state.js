@@ -1,6 +1,5 @@
 const DEF = {
   riskPct: 1,
-  defInv: 500,
   etfs: [
     { id: 1, isin: 'IE00BZ02LR44', ticker: 'XZW0.DE', name: 'Xtrackers MSCI World ESG', rf: false, cr: false, cat: 'Akt. Ind.', tgt: 52 },
     { id: 2, isin: 'IE00BZ0PKT83', ticker: 'IFSW.MI', name: 'iShares World Multifactor', rf: false, cr: false, cat: 'Akt. Ind.', tgt: 0 },
@@ -35,10 +34,9 @@ export function createDefaultPortfolio(id = 'p1', name = 'Main') {
     name,
     etfs: DEF.etfs.map(e => ({ ...e })),
     rp: DEF.riskPct,
-    di: DEF.defInv,
     nid: 20,
     mode: 'onetime',
-    inv: DEF.defInv,
+    inv: 500,
     h: {}
   };
 }
@@ -55,10 +53,9 @@ function migrateLegacy(raw) {
       name: 'Main',
       etfs: raw.etfs,
       rp: raw.rp ?? DEF.riskPct,
-      di: raw.di ?? DEF.defInv,
       nid: raw.nid ?? 20,
       mode: raw.mode ?? 'onetime',
-      inv: raw.inv ?? DEF.defInv,
+      inv: raw.inv ?? 500,
       h: raw.h ?? {}
     };
     return {

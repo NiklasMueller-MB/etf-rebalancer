@@ -11,7 +11,6 @@ export function exportPortfolioData() {
       id: portfolio.id,
       name: portfolio.name,
       riskPercentage: portfolio.rp,
-      defaultInvestment: portfolio.di,
       mode: portfolio.mode,
       etfs: portfolio.etfs.map(etf => ({
         id: etf.id,
@@ -60,7 +59,6 @@ export function importPortfolioData(file) {
             id: portfolio.id,
             name: portfolio.name,
             rp: portfolio.riskPercentage || 100,
-            di: portfolio.defaultInvestment || 500,
             nid: 20,
             mode: portfolio.mode || 'onetime',
             inv: portfolio.defaultInvestment || 500,

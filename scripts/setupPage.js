@@ -34,7 +34,6 @@ export function renderSetupPage() {
   const rpPct = Math.round(state.rp * 100);
   byId('rp').value = rpPct;
   setText('sp', Math.round((1 - state.rp) * 100));
-  byId('di').value = state.di;
 
   const risky = state.etfs.filter(e => !e.rf);
   const riskFree = state.etfs.filter(e => e.rf);
@@ -155,7 +154,6 @@ export function validateSetup() {
 
 export function initSetupPage() {
   const rpInput = byId('rp');
-  const diInput = byId('di');
   const addRisky = byId('add-risky');
   const addRiskFree = byId('add-riskfree');
 
@@ -177,20 +175,6 @@ export function initSetupPage() {
     setText('sp', Math.round((1 - frac) * 100));
   });
 
-  diInput?.addEventListener('change', () => {
-    // Validate default investment
-    const validation = validateAndParseNumber(diInput.value, { min: 0 });
-    
-    if (!validation.isValid) {
-      showInputError(diInput, validation.error, validation.suggestedValue);
-      return;
-    }
-    
-    hideInputError(diInput);
-    
-    const v = parseFloat(diInput.value) || 0;
-    updateActivePortfolio(prev => ({ ...prev, di: v }));
-  });
 
   addRisky?.addEventListener('click', () => {
     updateActivePortfolio(prev => {
