@@ -1,5 +1,5 @@
 const DEF = {
-  riskPct: 1,
+  riskPct: 0.7,
   etfs: [
     { id: 1, isin: 'IE00BZ02LR44', ticker: 'XZW0.DE', name: 'Xtrackers MSCI World ESG', rf: false, cr: false, cat: 'Akt. Ind.', tgt: 50 },
     { id: 3, isin: 'IE00BF4RFH31', ticker: 'WSML.L', name: 'iShares MSCI World Small Cap', rf: false, cr: false, cat: 'Akt. Ind. SM', tgt: 14 },
