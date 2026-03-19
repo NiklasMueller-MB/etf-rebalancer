@@ -155,6 +155,17 @@ async function onOptimize() {
     }
   }
   
+  // Validate trading options for one-time investment
+  if (currentPortfolio.mode === 'onetime') {
+    const allowBuy = currentPortfolio.allowBuy ?? true;
+    const allowSell = currentPortfolio.allowSell ?? false;
+    
+    if (!allowBuy && !allowSell) {
+      alert('Please select at least one trading option (buy or sell) for one-time investment.');
+      return;
+    }
+  }
+  
   const inv = ia ? parseFloat(ia.value) || 0 : currentPortfolio.inv;
   updateActivePortfolio(prev => ({ ...prev, inv }));
 
@@ -175,7 +186,7 @@ async function onOptimize() {
     const result = optimizeAllocation(portfolio, priceData);
     renderResultsPage(result);
     
-    // Show the trades card
+    // Show trades card
     const tradesCard = document.getElementById('trades-card');
     if (tradesCard) {
       tradesCard.style.display = 'block';

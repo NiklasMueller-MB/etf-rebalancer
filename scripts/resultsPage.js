@@ -280,6 +280,12 @@ export function initInvestmentSettings() {
   const to = byId('to');
   const ts = byId('ts');
   const ia = byId('ia');
+  const allowBuy = byId('allow-buy');
+  const allowSell = byId('allow-sell');
+  const minBuy = byId('min-buy');
+  const minSell = byId('min-sell');
+  const onetimeOptions = byId('onetime-options');
+  const tradingWarning = byId('trading-warning');
 
   to?.addEventListener('click', () => {
     updateActivePortfolio(prev => ({ ...prev, mode: 'onetime' }));
@@ -305,13 +311,74 @@ export function initInvestmentSettings() {
     const v = parseFloat(ia.value) || 0;
     updateActivePortfolio(prev => ({ ...prev, inv: v }));
   });
+
+  allowBuy?.addEventListener('change', () => {
+    const checked = allowBuy.checked;
+    updateActivePortfolio(prev => ({ ...prev, allowBuy: checked }));
+    validateTradingOptions();
+  });
+
+  allowSell?.addEventListener('change', () => {
+    const checked = allowSell.checked;
+    updateActivePortfolio(prev => ({ ...prev, allowSell: checked }));
+    validateTradingOptions();
+  });
+
+  minBuy?.addEventListener('change', () => {
+    const validation = validateAndParseNumber(minBuy.value, { min: 0 });
+    
+    if (!validation.isValid) {
+      showInputError(minBuy, validation.error, validation.suggestedValue);
+      return;
+    }
+    
+    hideInputError(minBuy);
+    
+    const v = parseFloat(minBuy.value) || 0;
+    updateActivePortfolio(prev => ({ ...prev, minBuyAmount: v }));
+  });
+
+  minSell?.addEventListener('change', () => {
+    const validation = validateAndParseNumber(minSell.value, { min: 0 });
+    
+    if (!validation.isValid) {
+      showInputError(minSell, validation.error, validation.suggestedValue);
+      return;
+    }
+    
+    hideInputError(minSell);
+    
+    const v = parseFloat(minSell.value) || 0;
+    updateActivePortfolio(prev => ({ ...prev, minSellAmount: v }));
+  });
+
+  function validateTradingOptions() {
+    if (!allowBuy || !allowSell || !tradingWarning) return;
+    
+    const buyChecked = allowBuy.checked;
+    const sellChecked = allowSell.checked;
+    
+    if (!buyChecked && !sellChecked) {
+      tradingWarning.style.display = 'block';
+    } else {
+      tradingWarning.style.display = 'none';
+    }
+  }
 }
 
 function setMode(mode) {
   const to = byId('to');
   const ts = byId('ts');
+  const onetimeOptions = byId('onetime-options');
+  
   to?.classList.toggle('active', mode === 'onetime');
   ts?.classList.toggle('active', mode === 'savings');
+  
+  // Show/hide trading options based on mode
+  if (onetimeOptions) {
+    onetimeOptions.style.display = mode === 'onetime' ? 'block' : 'none';
+  }
+  
   const mh = byId('mh');
   if (mh) {
     mh.textContent = mode === 'onetime'
@@ -323,7 +390,33 @@ function setMode(mode) {
 export function renderInvestmentSettings() {
   const state = getActivePortfolio();
   setMode(state.mode);
+  
   const ia = byId('ia');
   if (ia) ia.value = state.inv;
+  
+  const allowBuy = byId('allow-buy');
+  if (allowBuy) allowBuy.checked = state.allowBuy ?? true;
+  
+  const allowSell = byId('allow-sell');
+  if (allowSell) allowSell.checked = state.allowSell ?? false;
+  
+  const minBuy = byId('min-buy');
+  if (minBuy) minBuy.value = state.minBuyAmount ?? 250;
+  
+  const minSell = byId('min-sell');
+  if (minSell) minSell.value = state.minSellAmount ?? 250;
+  
+  // Validate trading options after setting values
+  const tradingWarning = byId('trading-warning');
+  if (tradingWarning && allowBuy && allowSell) {
+    const buyChecked = allowBuy.checked;
+    const sellChecked = allowSell.checked;
+    
+    if (!buyChecked && !sellChecked) {
+      tradingWarning.style.display = 'block';
+    } else {
+      tradingWarning.style.display = 'none';
+    }
+  }
 }
 

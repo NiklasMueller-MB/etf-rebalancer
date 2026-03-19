@@ -31,6 +31,10 @@ export function createDefaultPortfolio(id = 'p1', name = 'Main') {
     nid: 20,
     mode: 'onetime',
     inv: 500,
+    allowBuy: true,
+    allowSell: false,
+    minBuyAmount: 250,
+    minSellAmount: 250,
     h: {},
     manualPrices: {}
   };
@@ -40,10 +44,22 @@ function migrateLegacy(raw) {
   // Legacy shape looks like a single portfolio: has etfs/rp/di etc., but no portfolios array
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   if (Array.isArray(raw.portfolios)) {
-    // Ensure all portfolios have manualPrices field
+    // Ensure all portfolios have manualPrices field and new investment settings
     raw.portfolios.forEach(portfolio => {
       if (!portfolio.manualPrices) {
         portfolio.manualPrices = {};
+      }
+      if (portfolio.allowBuy === undefined) {
+        portfolio.allowBuy = true;
+      }
+      if (portfolio.allowSell === undefined) {
+        portfolio.allowSell = false;
+      }
+      if (portfolio.minBuyAmount === undefined) {
+        portfolio.minBuyAmount = 250;
+      }
+      if (portfolio.minSellAmount === undefined) {
+        portfolio.minSellAmount = 250;
       }
     });
     return raw;
@@ -57,6 +73,10 @@ function migrateLegacy(raw) {
       nid: raw.nid ?? 20,
       mode: raw.mode ?? 'onetime',
       inv: raw.inv ?? 500,
+      allowBuy: raw.allowBuy ?? true,
+      allowSell: raw.allowSell ?? false,
+      minBuyAmount: raw.minBuyAmount ?? 250,
+      minSellAmount: raw.minSellAmount ?? 250,
       h: raw.h ?? {},
       manualPrices: raw.manualPrices ?? {}
     };

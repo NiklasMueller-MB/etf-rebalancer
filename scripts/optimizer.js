@@ -125,6 +125,10 @@ export function optimizeAllocation(state, priceData) {
   const inv = state.inv;
   const rp = state.rp;
   const mode = state.mode;
+  const allowBuy = state.allowBuy ?? true;
+  const allowSell = state.allowSell ?? false;
+  const minBuyAmount = state.minBuyAmount ?? 250;
+  const minSellAmount = state.minSellAmount ?? 250;
   const { pricesById: pr, hiById: hi, loById: lo, currenciesById: cu } = priceData;
 
   const ist = etfs.map(e => (state.h[e.id] || 0) * pr[e.id]);
@@ -144,37 +148,63 @@ export function optimizeAllocation(state, priceData) {
     }
   });
   
-  // Calculate bounds based on R implementation logic
+  // Calculate bounds based on user preferences and minimal amounts
   let lb, ub;
-  if (inv < 0) {
-    // Selling: lower bound is investment amount, upper bound is 0
-    lb = etfs.map(() => inv);
-    ub = etfs.map(() => 0);
-  } else if (inv === 0) {
-    // Rebalancing: calculate free cash similar to R logic
-    const freeCash = tot; // Simplified - in R this considers specific ISINs
-    lb = etfs.map(() => -freeCash);
-    ub = etfs.map(() => freeCash);
-  } else {
-    // Buying: lower bound is 0, upper bound is investment amount
+  if (mode === 'savings') {
+    // For savings plan, always allow buying only
     lb = etfs.map(() => 0);
     ub = etfs.map(() => inv);
+  } else {
+    // For one-time investment, respect user preferences
+    if (!allowBuy && !allowSell) {
+      // No trading allowed - everything stays at 0
+      lb = etfs.map(() => 0);
+      ub = etfs.map(() => 0);
+    } else if (allowBuy && !allowSell) {
+      // Only buying allowed
+      lb = etfs.map(() => 0);
+      ub = etfs.map(() => inv);
+    } else if (!allowBuy && allowSell) {
+      // Only selling allowed
+      lb = etfs.map(() => -inv);
+      ub = etfs.map(() => 0);
+    } else {
+      // Both buying and selling allowed
+      lb = etfs.map(() => -inv);
+      ub = etfs.map(() => inv);
+    }
   }
   
   const r = optim(ist, sol, inv, lb, ub);
+  
+  // Apply minimal amounts constraints after optimization
+  const adjustedR = r.map((amount, i) => {
+    if (amount > 0 && amount < minBuyAmount) {
+      // If buy amount is below minimum, set to 0 (no trade)
+      return 0;
+    } else if (amount < 0 && Math.abs(amount) < minSellAmount) {
+      // If sell amount is below minimum, set to 0 (no trade)
+      return 0;
+    }
+    return amount;
+  });
 
   return {
     etfs,
     inv,
     rp,
     mode,
+    allowBuy,
+    allowSell,
+    minBuyAmount,
+    minSellAmount,
     ist,
     tot,
     ft,
     hasCrypto,
     cs,
     sol,
-    r,
+    r: adjustedR,
     pr,
     hi,
     lo,
