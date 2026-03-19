@@ -3,17 +3,17 @@
 function deviationFunction(r, ist, sol, minBuyAmount, minSellAmount) {
   let sum = 0;
   let penalty = 0;
-  const penaltyWeight = 10; // High weight to strongly discourage small trades
+  const penaltyWeight = 1; // Reduced weight to avoid optimization issues
   
   for (let i = 0; i < r.length; i++) {
     const diff = ist[i] + r[i] - sol[i];
     sum += diff * diff;
     
-    // Add penalty for trades below minimum amounts
+    // Add simple linear penalty for trades below minimum amounts
     if (r[i] > 0 && r[i] < minBuyAmount) {
-      penalty += penaltyWeight * Math.pow(minBuyAmount - r[i], 2);
+      penalty += (minBuyAmount - r[i]) * penaltyWeight;
     } else if (r[i] < 0 && Math.abs(r[i]) < minSellAmount) {
-      penalty += penaltyWeight * Math.pow(minSellAmount + r[i], 2);
+      penalty += (minSellAmount + r[i]) * penaltyWeight;
     }
   }
   return sum + penalty;
@@ -23,18 +23,37 @@ function deviationFunction(r, ist, sol, minBuyAmount, minSellAmount) {
 function optim(ist, sol, inv, lb, ub, minBuyAmount, minSellAmount) {
   const n = ist.length;
   
-  // Debug: Check for valid bounds
+  // Validate inputs
+  if (!ist || !sol || !lb || !ub || n === 0) {
+    console.error('Invalid inputs to optimizer');
+    return new Array(n).fill(0);
+  }
+  
+  // Check for any invalid values in inputs
   for (let i = 0; i < n; i++) {
-    if (isNaN(lb[i]) || isNaN(ub[i]) || !isFinite(lb[i]) || !isFinite(ub[i])) {
-      console.error('Invalid bounds:', i, lb[i], ub[i]);
+    if (!isFinite(ist[i]) || !isFinite(sol[i]) || !isFinite(lb[i]) || !isFinite(ub[i])) {
+      console.error('Invalid input values at index', i, ist[i], sol[i], lb[i], ub[i]);
       return new Array(n).fill(0);
     }
   }
   
   // Initial guess - distribute evenly
   // For sell-only mode, inv should be negative (selling)
-  const effectiveInv = (lb[0] < 0 && ub[0] <= 0) ? -inv : inv;
-  let r = new Array(n).fill(effectiveInv / n);
+  // For pure rebalancing (inv=0, both buy+sell), use a better initial guess
+  const effectiveInv = (lb && lb[0] < 0 && ub && ub[0] <= 0) ? -inv : inv;
+  let r;
+  
+  if (inv === 0 && lb[0] < 0 && ub[0] > 0) {
+    // Pure rebalancing case - start with some positive and negative values
+    r = ist.map((current, i) => {
+      const target = sol[i];
+      const diff = target - current;
+      return diff * 0.5; // Start with half the needed adjustment
+    });
+  } else {
+    r = new Array(n).fill(effectiveInv / n);
+  }
+  
   for (let i = 0; i < n; i++) {
     r[i] = Math.max(lb[i], Math.min(ub[i], r[i]));
   }
@@ -42,6 +61,21 @@ function optim(ist, sol, inv, lb, ub, minBuyAmount, minSellAmount) {
   // Normalize to meet constraint sum(r) = inv
   function normalizeToConstraint(arr) {
     const currentSum = arr.reduce((a, v) => a + v, 0);
+    
+    // For pure rebalancing (inv = 0), we just need sum(r) = 0
+    if (Math.abs(effectiveInv) < 1e-6) {
+      if (Math.abs(currentSum) < 1e-6) return arr;
+      
+      // Just subtract the average to make sum = 0
+      const avgOffset = currentSum / n;
+      const normalized = arr.map((v, i) => {
+        const adjusted = v - avgOffset;
+        return Math.max(lb[i], Math.min(ub[i], adjusted));
+      });
+      return normalized;
+    }
+    
+    // For normal cases, normalize to target investment amount
     if (Math.abs(currentSum - effectiveInv) < 1e-6) return arr;
     
     const scale = effectiveInv / currentSum;
@@ -81,8 +115,8 @@ function optim(ist, sol, inv, lb, ub, minBuyAmount, minSellAmount) {
   let bestDev = deviationFunction(r, ist, sol, minBuyAmount, minSellAmount);
   
   // Pattern search optimization
-  const maxIterations = 1000;
-  const initialStepSize = Math.max(Math.abs(inv), 1) * 0.1;
+  const maxIterations = 500; // Reduced from 1000 to prevent hanging
+  const initialStepSize = Math.max(Math.abs(effectiveInv), 1) * 0.1;
   let stepSize = initialStepSize;
   const tolerance = 1e-6;
   const minStepSize = 1e-8;
@@ -194,8 +228,8 @@ export function optimizeAllocation(state, priceData) {
       // If investment is 0, this is pure rebalancing (sell some, buy others)
       // If investment > 0, can both buy and sell
       const totalValue = ist.reduce((a, v) => a + v, 0);
-      lb = etfs.map(() => inv === 0 ? -totalValue * 0.5 : -inv);
-      ub = etfs.map(() => inv === 0 ? totalValue * 0.5 : inv);
+      lb = etfs.map(() => inv === 0 ? -totalValue : -inv);
+      ub = etfs.map(() => inv === 0 ? totalValue : inv);
     }
   }
   
@@ -219,12 +253,13 @@ export function optimizeAllocation(state, priceData) {
   
   // Adjust to maintain sum constraint exactly
   const currentSum = adjustedR.reduce((a, v) => a + v, 0);
-  const sumError = effectiveInv - currentSum;
+  const sumError = inv - currentSum;
   
   if (Math.abs(sumError) > 1e-6) {
     // Distribute error to trades that can be adjusted
-    const canIncrease = adjustedR.map((v, i) => v > 0 && v < effectiveInv ? i : -1).filter(i => i >= 0);
-    const canDecrease = adjustedR.map((v, i) => v < 0 && v > effectiveInv ? i : -1).filter(i => i >= 0);
+    const targetInv = (lb && lb[0] < 0 && ub && ub[0] <= 0) ? -inv : inv;
+    const canIncrease = adjustedR.map((v, i) => v > 0 && v < targetInv ? i : -1).filter(i => i >= 0);
+    const canDecrease = adjustedR.map((v, i) => v < 0 && v > targetInv ? i : -1).filter(i => i >= 0);
     
     if (sumError > 0 && canIncrease.length > 0) {
       const adjPerVar = sumError / canIncrease.length;
