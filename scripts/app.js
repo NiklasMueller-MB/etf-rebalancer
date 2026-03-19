@@ -62,16 +62,99 @@ async function onFetchAndCalculate() {
   const inv = ia ? parseFloat(ia.value) || 0 : currentPortfolio.inv;
   updateActivePortfolio(prev => ({ ...prev, inv }));
 
+  // Check if all required prices are available (manual or will be fetched)
+  const etfsNeedingPrices = currentPortfolio.etfs.filter(e => !e.rf && e.ticker);
+  const missingPrices = etfsNeedingPrices.filter(e => !currentPortfolio.manualPrices[e.id]);
+  
+  if (missingPrices.length > 0) {
+    const proceed = confirm(
+      `You are missing prices for: ${missingPrices.map(e => e.name).join(', ')}\n\n` +
+      `Click OK to fetch these prices now, or Cancel to enter them manually first.`
+    );
+    
+    if (!proceed) {
+      // Highlight missing prices and return to holdings page
+      const holdingsPage = document.getElementById('p2');
+      if (holdingsPage && !holdingsPage.classList.contains('active')) {
+        showPage(2);
+        renderHoldingsPage();
+      }
+      
+      // Highlight missing price fields
+      setTimeout(() => {
+        missingPrices.forEach(e => {
+          const input = document.querySelector(`tr[data-id="${e.id}"] input[data-field="price"]`);
+          if (input) {
+            input.classList.add('highlighted');
+          }
+        });
+      }, 100);
+      
+      alert('Please enter the missing prices manually (highlighted in amber) or use the "Fetch Prices" button.');
+      return;
+    }
+  }
+
   if (btn) btn.disabled = true;
   if (sp) sp.style.display = 'inline-block';
 
   try {
     const portfolio = getActivePortfolio();
-    const priceData = await fetchAllPrices(portfolio.etfs);
+    
+    // Start with manual prices
+    let priceData = {
+      pricesById: {},
+      hiById: {},
+      loById: {},
+      currenciesById: {},
+      infoLines: [],
+      failedFetches: [],
+      hasErrors: false
+    };
+    
+    // Set manual prices and default values for cash
+    portfolio.etfs.forEach(e => {
+      if (!e.ticker && e.rf) {
+        priceData.pricesById[e.id] = 1;
+        priceData.hiById[e.id] = 1;
+        priceData.loById[e.id] = 1;
+        priceData.currenciesById[e.id] = 'EUR';
+        priceData.infoLines.push(`${e.name}: cash (€1.00)`);
+      } else if (portfolio.manualPrices[e.id]) {
+        priceData.pricesById[e.id] = portfolio.manualPrices[e.id];
+        priceData.hiById[e.id] = portfolio.manualPrices[e.id];
+        priceData.loById[e.id] = portfolio.manualPrices[e.id];
+        priceData.currenciesById[e.id] = 'EUR';
+        priceData.infoLines.push(`${e.name} (${e.ticker}): €${portfolio.manualPrices[e.id].toFixed(2)} (manual)`);
+      }
+    });
+    
+    // Fetch missing prices
+    const etfsToFetch = portfolio.etfs.filter(e => 
+      e.ticker && !e.rf && !portfolio.manualPrices[e.id]
+    );
+    
+    if (etfsToFetch.length > 0) {
+      const fetchedData = await fetchAllPrices(etfsToFetch);
+      
+      // Merge fetched data with manual prices
+      Object.assign(priceData.pricesById, fetchedData.pricesById);
+      Object.assign(priceData.hiById, fetchedData.hiById);
+      Object.assign(priceData.loById, fetchedData.loById);
+      Object.assign(priceData.currenciesById, fetchedData.currenciesById);
+      priceData.infoLines.push(...fetchedData.infoLines);
+      
+      if (fetchedData.hasErrors) {
+        priceData.failedFetches.push(...fetchedData.failedFetches);
+        priceData.hasErrors = true;
+      }
+    }
+    
     setHTML(
       'pi',
       priceData.infoLines.map(p => `<div>${p}</div>`).join('')
     );
+    
     const result = optimizeAllocation(portfolio, priceData);
     showPage(3);
     renderResultsPage(result);

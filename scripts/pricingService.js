@@ -232,6 +232,7 @@ export async function fetchAllPrices(etfs) {
   const loById         = {};
   const currenciesById = {};
   const infoLines      = [];
+  const failedFetches  = [];
 
   for (const e of etfs) {
     if (!e.ticker && e.rf) {
@@ -255,14 +256,29 @@ export async function fetchAllPrices(etfs) {
         ` · buy ≤€${r.avgLow.toFixed(2)} · sell ≥€${r.avgHigh.toFixed(2)}`
       );
     } catch (err) {
-      throw new Error(
-        `Could not fetch price for "${e.name}" (${e.ticker}).\n\n` +
-        `ETFs: use Yahoo Finance ticker (e.g. XZW0.DE, EMIM.AS)\n` +
-        `Crypto: use Binance EUR pair (e.g. BTCEUR, ETHEUR)\n\n` +
-        `Error: ${err.message}`
-      );
+      failedFetches.push({ etf: e, error: err.message });
+      // Don't throw error immediately, continue fetching others
     }
   }
 
-  return { pricesById, hiById, loById, currenciesById, infoLines };
+  // If there are failed fetches, throw an error with details
+  if (failedFetches.length > 0) {
+    const errorDetails = failedFetches.map(f => 
+      `${f.etf.name} (${f.etf.ticker}): ${f.error}`
+    ).join('\n');
+    
+    // Still return partial results, but include failed fetches info
+    return { 
+      pricesById, 
+      hiById, 
+      loById, 
+      currenciesById, 
+      infoLines, 
+      failedFetches,
+      hasErrors: true,
+      errorMessage: `Could not fetch prices for:\n${errorDetails}`
+    };
+  }
+
+  return { pricesById, hiById, loById, currenciesById, infoLines, failedFetches: [], hasErrors: false };
 }

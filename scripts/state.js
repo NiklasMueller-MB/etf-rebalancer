@@ -37,7 +37,8 @@ export function createDefaultPortfolio(id = 'p1', name = 'Main') {
     nid: 20,
     mode: 'onetime',
     inv: 500,
-    h: {}
+    h: {},
+    manualPrices: {}
   };
 }
 
@@ -56,7 +57,8 @@ function migrateLegacy(raw) {
       nid: raw.nid ?? 20,
       mode: raw.mode ?? 'onetime',
       inv: raw.inv ?? 500,
-      h: raw.h ?? {}
+      h: raw.h ?? {},
+      manualPrices: raw.manualPrices ?? {}
     };
     return {
       portfolios: [portfolio],
