@@ -132,9 +132,17 @@ export function optimizeAllocation(state, priceData) {
   const ft = mode === 'onetime' ? tot + inv : tot + 3 * inv;
   const hasCrypto = etfs.some(e => e.cr && (state.h[e.id] || 0) > 0);
   const cs = hasCrypto ? 1 / 1.05 : 1;
-  const sol = etfs.map(e =>
-    e.rf ? (e.tgt / 100) * (1 - rp) * ft : (e.tgt / 100) * rp * cs * ft
-  );
+  
+  // Special handling when all holdings are 0: exclude risk-free assets from target allocation
+  const allHoldingsZero = tot === 0;
+  const sol = etfs.map(e => {
+    if (e.rf) {
+      // For risk-free assets, only allocate if we have existing holdings
+      return allHoldingsZero ? 0 : (e.tgt / 100) * (1 - rp) * ft;
+    } else {
+      return (e.tgt / 100) * rp * cs * ft;
+    }
+  });
   
   // Calculate bounds based on R implementation logic
   let lb, ub;
