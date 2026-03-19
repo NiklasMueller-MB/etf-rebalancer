@@ -1,4 +1,6 @@
 import { byId, setHTML } from './dom.js';
+import { updateActivePortfolio } from './state.js';
+import { validateAndParseNumber, showInputError, hideInputError } from './validation.js';
 
 let chartInstance = null;
 
@@ -7,6 +9,127 @@ function f(n) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+}
+
+export function renderComparisonOnly(portfolio, priceData) {
+  const { etfs, manualPrices, h } = portfolio;
+  const pr = priceData.pricesById;
+  const cu = priceData.currenciesById;
+  
+  // Calculate current values
+  const ist = etfs.map(e => (h[e.id] || 0) * (pr[e.id] || 0));
+  const tot = ist.reduce((a, b) => a + b, 0);
+  
+  // Calculate target values (without investment)
+  const sol = etfs.map(e => {
+    const targetValue = tot * (e.tgt / 100);
+    return targetValue;
+  });
+  const ft = sol.reduce((a, b) => a + b, 0);
+
+  // Update metrics without investment info
+  setHTML(
+    'sm',
+    `
+    <div class="mc"><div class="ml">Current portfolio</div><div class="mv">€${f(
+      tot
+    )}</div><div class="ms">${etfs.filter(e => (h[e.id] || 0) > 0).length || etfs.length} positions</div></div>
+    <div class="mc"><div class="ml">Target allocation</div><div class="mv">€${f(
+      ft
+    )}</div><div class="ms">based on current value</div></div>`
+  );
+
+  const ord = [...etfs.filter(e => !e.rf), ...etfs.filter(e => e.rf)];
+  const rows = ord
+    .map(e => {
+      const i = etfs.indexOf(e);
+      const cur = tot > 0 ? (ist[i] / tot) * 100 : 0;
+      const tgt = sol[i] / ft * 100;
+      const dr = cur - tgt;
+      const db =
+        Math.abs(dr) < 0.5
+          ? `<span class="badge bx">${dr.toFixed(1)}%</span>`
+          : dr > 0
+          ? `<span class="badge ba">+${dr.toFixed(1)}%</span>`
+          : `<span class="badge bb">${dr.toFixed(1)}%</span>`;
+      const bc = dr > 2 ? '#EF9F27' : dr < -2 ? '#378ADD' : '#1D9E75';
+      const bw = Math.min(100, (Math.abs(dr) / 20) * 100);
+      const priceStr =
+        e.rf && !e.ticker ? '—' : `${pr[e.id].toFixed(2)} ${cu[e.id] || ''}`;
+      return `<tr><td style="font-weight:500">${e.name}</td><td class="hs"><span class="cat">${
+        e.cat || ''
+      }</span></td><td class="mono">${priceStr}</td><td>${cur.toFixed(
+        1
+      )}%</td><td>${tgt.toFixed(1)}%</td><td>${db}</td><td class="hs"><div class="bw"><div class="bf" style="width:${bw}%;background:${bc}"></div></div></td></tr>`;
+    })
+    .join('');
+  setHTML('ab', rows);
+
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
+  const ce = ord.filter((_, j) => {
+    const i = etfs.indexOf(ord[j]);
+    return ist[i] > 1 || sol[i] > 1;
+  });
+  const ctx = byId('ac');
+  if (ctx && window.Chart) {
+    chartInstance = new window.Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ce.map(e =>
+          e.name
+            .replace('iShares', 'iSh.')
+            .replace('Xtrackers', 'Xtr.')
+            .split(' ')
+            .slice(0, 4)
+            .join(' ')
+        ),
+        datasets: [
+          {
+            label: 'Current %',
+            data: ce.map(e => {
+              const i = etfs.indexOf(e);
+              return tot > 0 ? +((ist[i] / tot * 100).toFixed(2)) : 0;
+            }),
+            backgroundColor: '#9FE1CB',
+            borderRadius: 3
+          },
+          {
+            label: 'Target %',
+            data: ce.map(e => {
+              const i = etfs.indexOf(e);
+              return +((sol[i] / ft * 100).toFixed(2));
+            }),
+            backgroundColor: '#1D9E75',
+            borderRadius: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { size: 10 }, maxRotation: 40 } },
+          y: {
+            ticks: {
+              callback: v => v + '%',
+              font: { size: 11 }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Clear trades table and hide trades card
+  setHTML('actb', '');
+  const tradesCard = document.getElementById('trades-card');
+  if (tradesCard) {
+    tradesCard.style.display = 'none';
+  }
 }
 
 export function renderResultsPage(data) {
@@ -144,5 +267,56 @@ export function renderResultsPage(data) {
     })
     .join('');
   setHTML('actb', tradeRows);
+}
+
+export function initInvestmentSettings() {
+  const to = byId('to');
+  const ts = byId('ts');
+  const ia = byId('ia');
+
+  to?.addEventListener('click', () => {
+    updateActivePortfolio(prev => ({ ...prev, mode: 'onetime' }));
+    setMode('onetime');
+  });
+
+  ts?.addEventListener('click', () => {
+    updateActivePortfolio(prev => ({ ...prev, mode: 'savings' }));
+    setMode('savings');
+  });
+
+  ia?.addEventListener('change', () => {
+    // Validate the investment amount
+    const validation = validateAndParseNumber(ia.value, { min: 0 });
+    
+    if (!validation.isValid) {
+      showInputError(ia, validation.error, validation.suggestedValue);
+      return;
+    }
+    
+    hideInputError(ia);
+    
+    const v = parseFloat(ia.value) || 0;
+    updateActivePortfolio(prev => ({ ...prev, inv: v }));
+  });
+}
+
+function setMode(mode) {
+  const to = byId('to');
+  const ts = byId('ts');
+  to?.classList.toggle('active', mode === 'onetime');
+  ts?.classList.toggle('active', mode === 'savings');
+  const mh = byId('mh');
+  if (mh) {
+    mh.textContent = mode === 'onetime'
+      ? 'invested as a one-time purchase'
+      : 'per month (3× used for target calculation)';
+  }
+}
+
+export function renderInvestmentSettings() {
+  const state = getActivePortfolio();
+  setMode(state.mode);
+  const ia = byId('ia');
+  if (ia) ia.value = state.inv;
 }
 

@@ -19,11 +19,11 @@
   </div>
 </div>
 <div class="steps">
-  <div class="step active" id="s1"><div class="sn">1</div><span>Setup</span></div>
+  <div class="step active" id="s1"><div class="sn">1</div><span>Target Allocation</span></div>
   <div class="ss"></div>
-  <div class="step" id="s2"><div class="sn">2</div><span>Holdings</span></div>
+  <div class="step" id="s2"><div class="sn">2</div><span>Actual Allocation</span></div>
   <div class="ss"></div>
-  <div class="step" id="s3"><div class="sn">3</div><span>Results</span></div>
+  <div class="step" id="s3"><div class="sn">3</div><span>Optimization</span></div>
 </div>
 
 <!-- PAGE 1 -->
@@ -71,7 +71,7 @@
       </div>
     </div>
   </div>
-  <div class="nav"><span></span><button class="btn btnp" id="next-to-holdings">Next: enter holdings &rarr;</button></div>
+  <div class="nav"><span></span><button class="btn btnp" id="next-to-holdings">Next: enter actual allocation &rarr;</button></div>
 </div>
 
 <!-- PAGE 2 -->
@@ -87,21 +87,10 @@
       </tr></thead><tbody id="hb"></tbody></table>
     </div>
   </div>
-  <div class="card">
-    <div class="ct">Investment amount</div>
-    <div class="tabs">
-      <button class="tab active" id="to" onclick="setM('onetime')">One-time investment</button>
-      <button class="tab" id="ts" onclick="setM('savings')">Monthly savings plan</button>
-    </div>
-    <div class="row" style="gap:14px">
-      <div><div class="fl">Amount (€)</div><input type="number" id="ia" class="imd" value="500" min="0" step="50"></div>
-      <div style="padding-top:18px;font-size:13px;color:var(--text2)" id="mh">invested as a one-time purchase</div>
-    </div>
-  </div>
   <div class="nav">
   <button class="btn" id="back-to-setup">&larr; Back</button>
-  <button class="btn btnp" id="fb">
-      <span id="fs" style="display:none" class="spin"></span>Fetch prices &amp; calculate &rarr;
+  <button class="btn btnp" id="view-comparison">
+      <span id="fs" style="display:none" class="spin"></span>View comparison &rarr;
     </button>
   </div>
   <div class="note">
@@ -135,6 +124,20 @@
     </div>
   </div>
   <div class="card">
+    <div class="ct">Investment settings</div>
+    <div class="tabs">
+      <button class="tab active" id="to" onclick="setM('onetime')">One-time investment</button>
+      <button class="tab" id="ts" onclick="setM('savings')">Monthly savings plan</button>
+    </div>
+    <div class="row" style="gap:14px">
+      <div><div class="fl">Amount (€)</div><input type="number" id="ia" class="imd" value="500" min="0" step="50"></div>
+      <div style="padding-top:18px;font-size:13px;color:var(--text2)" id="mh">invested as a one-time purchase</div>
+    </div>
+    <button class="btn btnp" id="optimize-btn" style="margin-top:20px; width:100%">
+      <span id="os" style="display:none" class="spin"></span>Calculate optimal trades
+    </button>
+  </div>
+  <div class="card" id="trades-card" style="display:none">
     <div class="ct" id="att">Recommended trades</div>
     <div style="overflow-x:auto">
       <table class="tbl"><thead><tr>

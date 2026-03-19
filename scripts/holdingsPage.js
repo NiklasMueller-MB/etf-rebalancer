@@ -143,56 +143,13 @@ function renderHoldingsTable() {
 
 export function renderHoldingsPage() {
   const state = getActivePortfolio();
-  setMode(state.mode);
-  const ia = byId('ia');
-  if (ia) ia.value = state.inv;
   renderHoldingsTable();
 }
 
-function setMode(mode) {
-  const to = byId('to');
-  const ts = byId('ts');
-  to?.classList.toggle('active', mode === 'onetime');
-  ts?.classList.toggle('active', mode === 'savings');
-  const mh = byId('mh');
-  if (mh) {
-    mh.textContent = mode === 'onetime'
-      ? 'invested as a one-time purchase'
-      : 'per month (3× used for target calculation)';
-  }
-}
 
 export function initHoldingsPage() {
-  const to = byId('to');
-  const ts = byId('ts');
-  const ia = byId('ia');
   const hb = byId('hb');
   const fetchPricesBtn = byId('fetch-prices-btn');
-
-  to?.addEventListener('click', () => {
-    updateActivePortfolio(prev => ({ ...prev, mode: 'onetime' }));
-    setMode('onetime');
-  });
-
-  ts?.addEventListener('click', () => {
-    updateActivePortfolio(prev => ({ ...prev, mode: 'savings' }));
-    setMode('savings');
-  });
-
-  ia?.addEventListener('change', () => {
-    // Validate the investment amount
-    const validation = validateAndParseNumber(ia.value, { min: 0 });
-    
-    if (!validation.isValid) {
-      showInputError(ia, validation.error, validation.suggestedValue);
-      return;
-    }
-    
-    hideInputError(ia);
-    
-    const v = parseFloat(ia.value) || 0;
-    updateActivePortfolio(prev => ({ ...prev, inv: v }));
-  });
 
   fetchPricesBtn?.addEventListener('click', () => {
     showFetchPricesWarning();

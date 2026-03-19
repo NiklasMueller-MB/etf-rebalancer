@@ -4,7 +4,7 @@ import { initSetupPage, renderSetupPage, validateSetup } from './setupPage.js';
 import { initHoldingsPage, renderHoldingsPage } from './holdingsPage.js';
 import { fetchAllPrices } from './pricingService.js';
 import { optimizeAllocation } from './optimizer.js';
-import { renderResultsPage } from './resultsPage.js';
+import { renderResultsPage, renderComparisonOnly, initInvestmentSettings, renderInvestmentSettings } from './resultsPage.js';
 import { initPortfolioBar, renderPortfolioBar } from './portfolioBar.js';
 import { initImportExport } from './importExport.js';
 import { validateAndParseNumber } from './validation.js';
@@ -28,8 +28,8 @@ async function goToResults() {
     return;
   }
   
-  // Trigger the same process as the "Fetch prices & calculate" button
-  await onFetchAndCalculate();
+  // Trigger the comparison view when entering step 3
+  await onViewComparison();
 }
 
 function goBackToSetup() {
@@ -42,26 +42,12 @@ function goBackToHoldings() {
   renderHoldingsPage();
 }
 
-async function onFetchAndCalculate() {
-  const btn = byId('fb');
+async function onViewComparison() {
+  const btn = byId('view-comparison');
   const sp = byId('fs');
-  const ia = byId('ia');
 
   const currentPortfolio = getActivePortfolio();
   
-  // Validate investment amount format
-  if (ia) {
-    const validation = validateAndParseNumber(ia.value, { min: 0 });
-    if (!validation.isValid) {
-      alert('Please correct the investment amount: ' + validation.error);
-      ia.focus();
-      return;
-    }
-  }
-  
-  const inv = ia ? parseFloat(ia.value) || 0 : currentPortfolio.inv;
-  updateActivePortfolio(prev => ({ ...prev, inv }));
-
   // Check if all required prices are available (manual or will be fetched)
   const etfsNeedingPrices = currentPortfolio.etfs.filter(e => !e.rf && e.ticker);
   const missingPrices = etfsNeedingPrices.filter(e => !currentPortfolio.manualPrices[e.id]);
@@ -155,9 +141,63 @@ async function onFetchAndCalculate() {
       priceData.infoLines.map(p => `<div>${p}</div>`).join('')
     );
     
-    const result = optimizeAllocation(portfolio, priceData);
+    // Store price data for later use in optimization
+    window.currentPriceData = priceData;
+    
+    // Show comparison without optimization
+    showComparisonOnly(portfolio, priceData);
+    renderInvestmentSettings();
     showPage(3);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (sp) sp.style.display = 'none';
+  }
+}
+
+async function onOptimize() {
+  const btn = byId('optimize-btn');
+  const sp = byId('os');
+  const ia = byId('ia');
+
+  const currentPortfolio = getActivePortfolio();
+  
+  // Validate investment amount format
+  if (ia) {
+    const validation = validateAndParseNumber(ia.value, { min: 0 });
+    if (!validation.isValid) {
+      alert('Please correct the investment amount: ' + validation.error);
+      ia.focus();
+      return;
+    }
+  }
+  
+  const inv = ia ? parseFloat(ia.value) || 0 : currentPortfolio.inv;
+  updateActivePortfolio(prev => ({ ...prev, inv }));
+
+  if (btn) btn.disabled = true;
+  if (sp) sp.style.display = 'inline-block';
+
+  try {
+    const portfolio = getActivePortfolio();
+    
+    // Use stored price data or fetch if not available
+    let priceData = window.currentPriceData;
+    if (!priceData) {
+      // Fallback: fetch prices again
+      priceData = await fetchAllPrices(portfolio.etfs);
+      window.currentPriceData = priceData;
+    }
+    
+    const result = optimizeAllocation(portfolio, priceData);
     renderResultsPage(result);
+    
+    // Show the trades card
+    const tradesCard = document.getElementById('trades-card');
+    if (tradesCard) {
+      tradesCard.style.display = 'block';
+    }
   } catch (err) {
     alert(err.message);
   } finally {
@@ -170,7 +210,8 @@ function initNav() {
   const next = byId('next-to-holdings');
   const backToSetup = byId('back-to-setup');
   const backToHoldings = byId('back-to-holdings');
-  const fetchBtn = byId('fb');
+  const viewComparisonBtn = byId('view-comparison');
+  const optimizeBtn = byId('optimize-btn');
 
   // Step navigation
   const step1 = byId('s1');
@@ -180,7 +221,8 @@ function initNav() {
   next?.addEventListener('click', goToHoldings);
   backToSetup?.addEventListener('click', goBackToSetup);
   backToHoldings?.addEventListener('click', goBackToHoldings);
-  fetchBtn?.addEventListener('click', onFetchAndCalculate);
+  viewComparisonBtn?.addEventListener('click', onViewComparison);
+  optimizeBtn?.addEventListener('click', onOptimize);
 
   // Step indicator navigation
   step1?.addEventListener('click', goToSetup);
@@ -194,6 +236,7 @@ function init() {
   initPortfolioBar();
   initImportExport();
   initNav();
+  initInvestmentSettings();
   renderPortfolioBar();
   goToSetup();
 }
