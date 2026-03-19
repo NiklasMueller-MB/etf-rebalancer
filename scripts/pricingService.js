@@ -5,9 +5,9 @@
 //
 //  1. Yahoo Finance v8 chart via query2 subdomain (different rate-limit pool)
 //     wrapped in allorigins (still works for query2, blocked less than query1).
-//  2. Yahoo Finance v8 chart via query1 subdomain wrapped in corsproxy.io.
-//  3. Open-source yahoo-finance2-compatible REST mirror at
+//  2. Open-source yahoo-finance2-compatible REST mirror at
 //     https://yfapi.net  (free tier, no key needed for basic quotes).
+//  3. Yahoo Finance 30-day price history via corsproxy.io as final fallback.
 //
 // Crypto (Binance) is direct — Binance has open CORS headers.
 // ---------------------------------------------------------------------------
@@ -136,6 +136,37 @@ async function fetchViaYfapi(ticker) {
   return { synthetic: true, price: p, currency: q.currency || 'EUR' };
 }
 
+// ── Source 4 : 30-day price history fallback ─────────────────────────────────
+// Fetches 30-day history directly and uses the last close price as final fallback
+async function fetchVia30DayHistory(ticker) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=30d&includePrePost=false`;
+  const data = await getJson(url);
+  
+  if (data?.chart?.error) {
+    throw new Error(data.chart.error.description || 'Yahoo 30-day chart error');
+  }
+  
+  const res = data?.chart?.result?.[0];
+  if (!res) throw new Error(`no 30-day chart result for ${ticker}`);
+  
+  const q = res.indicators.quote[0];
+  const close = q.close.filter(x => x != null);
+  
+  if (!close.length) throw new Error('no close prices in 30-day history');
+  
+  // Use the last close price
+  const lastClose = close[close.length - 1];
+  
+  // For 30-day fallback, we can't provide reliable avgHigh/Low, so use the close price
+  return { 
+    synthetic: true, 
+    price: lastClose, 
+    avgHigh: lastClose, 
+    avgLow: lastClose, 
+    currency: res.meta.currency || 'EUR' 
+  };
+}
+
 // ── Parse Yahoo v8/chart response ───────────────────────────────────────────
 function parseChart(data, ticker) {
   if (data?.chart?.error)
@@ -167,13 +198,13 @@ export async function fetchYahooPrice(ticker) {
 
   const sources = [
     { name: 'allorigins+query2', fn: () => fetchViaAllorigins(ticker).then(d => parseChart(d, ticker)) },
-    { name: 'corsproxy+query1',  fn: () => fetchViaCorsproxy(ticker).then(d => parseChart(d, ticker)) },
     { name: 'yfapi',             fn: async () => {
         const d = await fetchViaYfapi(ticker);
         // yfapi has no OHLC — avgHigh/Low equal price (no limit-price suggestion)
         return { price: d.price, avgHigh: d.price, avgLow: d.price, currency: d.currency };
       }
     },
+    { name: '30day-history',     fn: () => fetchVia30DayHistory(ticker) },
   ];
 
   const errors = [];
