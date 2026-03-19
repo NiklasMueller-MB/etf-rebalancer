@@ -46,6 +46,12 @@ function migrateLegacy(raw) {
   // Legacy shape looks like a single portfolio: has etfs/rp/di etc., but no portfolios array
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   if (Array.isArray(raw.portfolios)) {
+    // Ensure all portfolios have manualPrices field
+    raw.portfolios.forEach(portfolio => {
+      if (!portfolio.manualPrices) {
+        portfolio.manualPrices = {};
+      }
+    });
     return raw;
   }
   if (Array.isArray(raw.etfs)) {
@@ -116,6 +122,10 @@ export function getActivePortfolio() {
   if (!p) {
     p = portfolios[0] || createDefaultPortfolio('p1', 'Main');
   }
+  // Ensure manualPrices is always available
+  if (!p.manualPrices) {
+    p.manualPrices = {};
+  }
   return p;
 }
 
@@ -124,6 +134,10 @@ export function updateActivePortfolio(updater) {
     const current = getActivePortfolio();
     const nextPortfolio =
       typeof updater === 'function' ? updater(current) : updater;
+    // Ensure manualPrices is always available in the updated portfolio
+    if (!nextPortfolio.manualPrices) {
+      nextPortfolio.manualPrices = current.manualPrices || {};
+    }
     const portfolios = prev.portfolios.map(p =>
       p.id === current.id ? nextPortfolio : p
     );
