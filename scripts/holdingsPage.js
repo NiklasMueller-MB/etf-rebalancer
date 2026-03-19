@@ -126,7 +126,11 @@ function renderHoldingsTable() {
   const all = [...state.etfs.filter(e => !e.rf), ...state.etfs.filter(e => e.rf)];
   const rows = all.map(e => {
     const held = state.h[e.id] || 0;
-    const manualPrice = state.manualPrices[e.id] || '';
+    // Auto-set price to 1 for cash/risk-free assets with empty ticker
+    let manualPrice = state.manualPrices[e.id] || '';
+    if (e.rf && !e.ticker && !manualPrice) {
+      manualPrice = '1';
+    }
     const badgeClass = e.rf ? 'bt' : 'bb';
     const typeLabel = e.rf ? 'Risk-free' : 'Risky';
     return `<tr data-id="${e.id}">
@@ -134,8 +138,7 @@ function renderHoldingsTable() {
       <td class="hs mono">${e.ticker || '—'}</td>
       <td class="hs"><span class="badge ${badgeClass}">${typeLabel}</span></td>
       <td><input type="number" class="ism" min="0" step="any" style="width:110px" value="${held}" data-field="held"></td>
-      <td><input type="number" class="ism price-input" min="0" step="0.01" style="width:100px" value="${manualPrice}" placeholder="0.00" data-field="price"></td>
-      <td><span class="badge bx">${e.tgt}%</span></td>
+      <td><input type="number" class="ism price-input${e.rf && !e.ticker ? ' readonly' : ''}" min="0" step="0.01" style="width:100px" value="${manualPrice}" placeholder="0.00" data-field="price" ${e.rf && !e.ticker ? 'readonly' : ''}></td>
     </tr>`;
   }).join('');
   setHTML('hb', rows);
@@ -143,6 +146,22 @@ function renderHoldingsTable() {
 
 export function renderHoldingsPage() {
   const state = getActivePortfolio();
+  
+  // Auto-save price 1 for cash/risk-free assets with empty ticker
+  const updatedManualPrices = { ...state.manualPrices };
+  let hasChanges = false;
+  
+  state.etfs.forEach(e => {
+    if (e.rf && !e.ticker && !updatedManualPrices[e.id]) {
+      updatedManualPrices[e.id] = 1;
+      hasChanges = true;
+    }
+  });
+  
+  if (hasChanges) {
+    updateActivePortfolio(prev => ({ ...prev, manualPrices: updatedManualPrices }));
+  }
+  
   renderHoldingsTable();
 }
 
@@ -185,6 +204,12 @@ export function initHoldingsPage() {
       if (!tr) return;
       const id = Number(tr.dataset.id);
       if (!id) return;
+      
+      // Don't allow editing of cash/risk-free prices (they should remain 1)
+      const etf = state.etfs.find(e => e.id === id);
+      if (etf && etf.rf && !etf.ticker) {
+        return; // Skip editing for cash assets
+      }
       
       // Clear highlighting when user manually enters a price
       clearPriceHighlight(target);
