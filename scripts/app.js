@@ -145,7 +145,7 @@ async function onViewComparison() {
     window.currentPriceData = priceData;
     
     // Show comparison without optimization
-    showComparisonOnly(portfolio, priceData);
+    renderComparisonOnly(portfolio, priceData);
     renderInvestmentSettings();
     showPage(3);
   } catch (err) {

@@ -1,5 +1,5 @@
 import { byId, setHTML } from './dom.js';
-import { updateActivePortfolio } from './state.js';
+import { getActivePortfolio, updateActivePortfolio } from './state.js';
 import { validateAndParseNumber, showInputError, hideInputError } from './validation.js';
 
 let chartInstance = null;
