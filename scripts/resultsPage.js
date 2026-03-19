@@ -65,6 +65,20 @@ export function renderComparisonOnly(portfolio, priceData) {
     .join('');
   setHTML('ab', rows);
 
+  // Clear trades table and hide trades card
+  setHTML('actb', '');
+  const tradesCard = document.getElementById('trades-card');
+  if (tradesCard) {
+    tradesCard.style.display = 'none';
+  }
+
+  // Render chart with a small delay to ensure canvas is ready
+  setTimeout(() => {
+    renderChart(ord, etfs, ist, tot, sol, ft);
+  }, 100);
+}
+
+function renderChart(ord, etfs, ist, tot, sol, ft) {
   if (chartInstance) {
     chartInstance.destroy();
     chartInstance = null;
@@ -122,13 +136,6 @@ export function renderComparisonOnly(portfolio, priceData) {
         }
       }
     });
-  }
-
-  // Clear trades table and hide trades card
-  setHTML('actb', '');
-  const tradesCard = document.getElementById('trades-card');
-  if (tradesCard) {
-    tradesCard.style.display = 'none';
   }
 }
 

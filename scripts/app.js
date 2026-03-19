@@ -45,42 +45,8 @@ function goBackToHoldings() {
 async function onViewComparison() {
   const btn = byId('view-comparison');
   const sp = byId('fs');
-
   const currentPortfolio = getActivePortfolio();
   
-  // Check if all required prices are available (manual or will be fetched)
-  const etfsNeedingPrices = currentPortfolio.etfs.filter(e => !e.rf && e.ticker);
-  const missingPrices = etfsNeedingPrices.filter(e => !currentPortfolio.manualPrices[e.id]);
-  
-  if (missingPrices.length > 0) {
-    const proceed = confirm(
-      `You are missing prices for: ${missingPrices.map(e => e.name).join(', ')}\n\n` +
-      `Click OK to fetch these prices now, or Cancel to enter them manually first.`
-    );
-    
-    if (!proceed) {
-      // Highlight missing prices and return to holdings page
-      const holdingsPage = document.getElementById('p2');
-      if (holdingsPage && !holdingsPage.classList.contains('active')) {
-        showPage(2);
-        renderHoldingsPage();
-      }
-      
-      // Highlight missing price fields
-      setTimeout(() => {
-        missingPrices.forEach(e => {
-          const input = document.querySelector(`tr[data-id="${e.id}"] input[data-field="price"]`);
-          if (input) {
-            input.classList.add('highlighted');
-          }
-        });
-      }, 100);
-      
-      alert('Please enter the missing prices manually (highlighted in amber) or use the "Fetch Prices" button.');
-      return;
-    }
-  }
-
   if (btn) btn.disabled = true;
   if (sp) sp.style.display = 'inline-block';
 
@@ -106,22 +72,27 @@ async function onViewComparison() {
         priceData.loById[e.id] = 1;
         priceData.currenciesById[e.id] = 'EUR';
         priceData.infoLines.push(`${e.name}: cash (€1.00)`);
-      } else if (portfolio.manualPrices[e.id]) {
-        priceData.pricesById[e.id] = portfolio.manualPrices[e.id];
-        priceData.hiById[e.id] = portfolio.manualPrices[e.id];
-        priceData.loById[e.id] = portfolio.manualPrices[e.id];
+      } else if (portfolio.manualPrices[e.id] !== undefined) {
+        const price = portfolio.manualPrices[e.id] || 0; // Allow 0 prices
+        priceData.pricesById[e.id] = price;
+        priceData.hiById[e.id] = price;
+        priceData.loById[e.id] = price;
         priceData.currenciesById[e.id] = 'EUR';
-        priceData.infoLines.push(`${e.name} (${e.ticker}): €${portfolio.manualPrices[e.id].toFixed(2)} (manual)`);
+        if (price > 0) {
+          priceData.infoLines.push(`${e.name} (${e.ticker}): €${price.toFixed(2)} (manual)`);
+        } else {
+          priceData.infoLines.push(`${e.name} (${e.ticker}): no price (no holdings)`);
+        }
       }
     });
     
-    // Fetch missing prices
-    const etfsToFetch = portfolio.etfs.filter(e => 
-      e.ticker && !e.rf && !portfolio.manualPrices[e.id]
+    // Fetch missing prices only for ETFs with holdings
+    const etfsWithHoldings = portfolio.etfs.filter(e => 
+      e.ticker && !e.rf && !portfolio.manualPrices[e.id] && (portfolio.h[e.id] || 0) > 0
     );
     
-    if (etfsToFetch.length > 0) {
-      const fetchedData = await fetchAllPrices(etfsToFetch);
+    if (etfsWithHoldings.length > 0) {
+      const fetchedData = await fetchAllPrices(etfsWithHoldings);
       
       // Merge fetched data with manual prices
       Object.assign(priceData.pricesById, fetchedData.pricesById);
@@ -135,6 +106,17 @@ async function onViewComparison() {
         priceData.hasErrors = true;
       }
     }
+    
+    // Set default price (0) for ETFs without holdings and no manual price
+    portfolio.etfs.forEach(e => {
+      if (e.ticker && !e.rf && priceData.pricesById[e.id] === undefined) {
+        priceData.pricesById[e.id] = 0;
+        priceData.hiById[e.id] = 0;
+        priceData.loById[e.id] = 0;
+        priceData.currenciesById[e.id] = 'EUR';
+        priceData.infoLines.push(`${e.name} (${e.ticker}): no price (no holdings)`);
+      }
+    });
     
     setHTML(
       'pi',
