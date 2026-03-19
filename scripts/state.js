@@ -1,13 +1,13 @@
 const DEF = {
   riskPct: 1,
   etfs: [
-    { id: 1, isin: 'IE00BZ02LR44', ticker: 'XZW0.DE', name: 'Xtrackers MSCI World ESG', rf: false, cr: false, cat: 'Akt. Ind.', tgt: 52 },
+    { id: 1, isin: 'IE00BZ02LR44', ticker: 'XZW0.DE', name: 'Xtrackers MSCI World ESG', rf: false, cr: false, cat: 'Akt. Ind.', tgt: 50 },
     { id: 2, isin: 'IE00BZ0PKT83', ticker: 'IFSW.MI', name: 'iShares World Multifactor', rf: false, cr: false, cat: 'Akt. Ind.', tgt: 0 },
-    { id: 3, isin: 'IE00BF4RFH31', ticker: 'WSML.L', name: 'iShares MSCI World Small Cap', rf: false, cr: false, cat: 'Akt. Ind. SM', tgt: 15 },
+    { id: 3, isin: 'IE00BF4RFH31', ticker: 'WSML.L', name: 'iShares MSCI World Small Cap', rf: false, cr: false, cat: 'Akt. Ind. SM', tgt: 14 },
     { id: 4, isin: 'LU0380865021', ticker: 'XESC.MU', name: 'Xtrackers Euro Stoxx 50', rf: false, cr: false, cat: 'Akt. Eur.', tgt: 0 },
     { id: 5, isin: 'IE00BFMNHK08', ticker: 'XZEU.DE', name: 'Xtrackers MSCI Europe ESG', rf: false, cr: false, cat: 'Akt. Eur.', tgt: 0 },
     { id: 6, isin: 'IE00BG370F43', ticker: 'XZEM.DE', name: 'Xtrackers MSCI EM ESG', rf: false, cr: false, cat: 'Akt. EM', tgt: 0 },
-    { id: 7, isin: 'IE00BFNM3P36', ticker: 'AYEM.DE', name: 'iShares MSCI EM IMI ESG', rf: false, cr: false, cat: 'Akt. EM', tgt: 33 },
+    { id: 7, isin: 'IE00BFNM3P36', ticker: 'AYEM.DE', name: 'iShares MSCI EM IMI ESG', rf: false, cr: false, cat: 'Akt. EM', tgt: 31 },
     { id: 8, isin: 'IE00BKM4GZ66', ticker: 'EMIM.AS', name: 'iShares Core MSCI EM IMI', rf: false, cr: false, cat: 'Akt. EM', tgt: 0 },
     { id: 10, isin: 'BitCoin', ticker: 'BTCEUR', name: 'Bitcoin', rf: false, cr: true, cat: 'Krypto', tgt: 3 },
     { id: 11, isin: 'Ethereum', ticker: 'ETHEUR', name: 'Ethereum', rf: false, cr: true, cat: 'Krypto', tgt: 2 },
