@@ -1,15 +1,26 @@
 // Deviation function - sum of squared differences between current+rebalancing and target
-function deviationFunction(r, ist, sol) {
+// Includes penalty terms for trades below minimum amounts
+function deviationFunction(r, ist, sol, minBuyAmount, minSellAmount) {
   let sum = 0;
+  let penalty = 0;
+  const penaltyWeight = 1000; // High weight to strongly discourage small trades
+  
   for (let i = 0; i < r.length; i++) {
     const diff = ist[i] + r[i] - sol[i];
     sum += diff * diff;
+    
+    // Add penalty for trades below minimum amounts
+    if (r[i] > 0 && r[i] < minBuyAmount) {
+      penalty += penaltyWeight * Math.pow(minBuyAmount - r[i], 2);
+    } else if (r[i] < 0 && Math.abs(r[i]) < minSellAmount) {
+      penalty += penaltyWeight * Math.pow(minSellAmount + r[i], 2);
+    }
   }
-  return sum;
+  return sum + penalty;
 }
 
 // Simple COBYLA-like optimization using pattern search
-function optim(ist, sol, inv, lb, ub) {
+function optim(ist, sol, inv, lb, ub, minBuyAmount, minSellAmount) {
   const n = ist.length;
   
   // Initial guess - distribute evenly
@@ -57,7 +68,7 @@ function optim(ist, sol, inv, lb, ub) {
   r = normalizeToConstraint(r);
   
   let bestR = [...r];
-  let bestDev = deviationFunction(r, ist, sol);
+  let bestDev = deviationFunction(r, ist, sol, minBuyAmount, minSellAmount);
   
   // Pattern search optimization
   const maxIterations = 1000;
@@ -77,7 +88,7 @@ function optim(ist, sol, inv, lb, ub) {
       if (originalValue + stepSize <= ub[i]) {
         r[i] = originalValue + stepSize;
         const candidateR = normalizeToConstraint(r);
-        const candidateDev = deviationFunction(candidateR, ist, sol);
+        const candidateDev = deviationFunction(candidateR, ist, sol, minBuyAmount, minSellAmount);
         
         if (candidateDev < bestDev - tolerance) {
           bestR = [...candidateR];
@@ -90,7 +101,7 @@ function optim(ist, sol, inv, lb, ub) {
       if (originalValue - stepSize >= lb[i]) {
         r[i] = originalValue - stepSize;
         const candidateR = normalizeToConstraint(r);
-        const candidateDev = deviationFunction(candidateR, ist, sol);
+        const candidateDev = deviationFunction(candidateR, ist, sol, minBuyAmount, minSellAmount);
         
         if (candidateDev < bestDev - tolerance) {
           bestR = [...candidateR];
@@ -165,29 +176,58 @@ export function optimizeAllocation(state, priceData) {
       lb = etfs.map(() => 0);
       ub = etfs.map(() => inv);
     } else if (!allowBuy && allowSell) {
-      // Only selling allowed
+      // Only selling allowed - investment amount is negative (total to sell)
       lb = etfs.map(() => -inv);
       ub = etfs.map(() => 0);
     } else {
-      // Both buying and selling allowed
-      lb = etfs.map(() => -inv);
-      ub = etfs.map(() => inv);
+      // Both buying and selling allowed - can rebalance
+      // If investment is 0, this is pure rebalancing (sell some, buy others)
+      // If investment > 0, can both buy and sell
+      const totalValue = ist.reduce((a, v) => a + v, 0);
+      lb = etfs.map(() => inv === 0 ? -totalValue : -inv);
+      ub = etfs.map(() => inv === 0 ? totalValue : inv);
     }
   }
   
-  const r = optim(ist, sol, inv, lb, ub);
+  const r = optim(ist, sol, inv, lb, ub, minBuyAmount, minSellAmount);
   
-  // Apply minimal amounts constraints after optimization
+  // Post-process to round to valid discrete states (0 or >= minimum)
   const adjustedR = r.map((amount, i) => {
     if (amount > 0 && amount < minBuyAmount) {
-      // If buy amount is below minimum, set to 0 (no trade)
-      return 0;
+      // Round small buy to nearest valid state (0 or minBuyAmount)
+      const targetWithZero = Math.abs(amount - 0);
+      const targetWithMin = Math.abs(amount - minBuyAmount);
+      return targetWithZero <= targetWithMin ? 0 : minBuyAmount;
     } else if (amount < 0 && Math.abs(amount) < minSellAmount) {
-      // If sell amount is below minimum, set to 0 (no trade)
-      return 0;
+      // Round small sell to nearest valid state (0 or -minSellAmount)
+      const targetWithZero = Math.abs(amount - 0);
+      const targetWithMin = Math.abs(amount + minSellAmount);
+      return targetWithZero <= targetWithMin ? 0 : -minSellAmount;
     }
     return amount;
   });
+  
+  // Adjust to maintain sum constraint exactly
+  const currentSum = adjustedR.reduce((a, v) => a + v, 0);
+  const sumError = inv - currentSum;
+  
+  if (Math.abs(sumError) > 1e-6) {
+    // Distribute error to trades that can be adjusted
+    const canIncrease = adjustedR.map((v, i) => v > 0 && v < inv ? i : -1).filter(i => i >= 0);
+    const canDecrease = adjustedR.map((v, i) => v < 0 && v > -inv ? i : -1).filter(i => i >= 0);
+    
+    if (sumError > 0 && canIncrease.length > 0) {
+      const adjPerVar = sumError / canIncrease.length;
+      canIncrease.forEach(i => {
+        adjustedR[i] += adjPerVar;
+      });
+    } else if (sumError < 0 && canDecrease.length > 0) {
+      const adjPerVar = sumError / canDecrease.length;
+      canDecrease.forEach(i => {
+        adjustedR[i] += adjPerVar;
+      });
+    }
+  }
 
   return {
     etfs,
