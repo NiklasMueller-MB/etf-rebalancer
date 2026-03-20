@@ -75,3 +75,10 @@ input[type=checkbox]{width:auto;accent-color:var(--text)}
 .ptab-add{padding:5px 11px;border-radius:20px;font-size:12px;cursor:pointer;border:.5px dashed var(--b2);background:transparent;color:var(--text3);white-space:nowrap}
 .ptab-add:hover{background:var(--bg2);color:var(--text)}
 
+/* SVG icon styles */
+svg{color:currentColor;vertical-align:middle;flex-shrink:0}
+.btn svg{vertical-align:text-bottom}
+.ptab-rename svg,.ptab-x svg{vertical-align:baseline}
+.note svg{color:var(--text3)}
+.input-error svg{color:#e74c3c}
+

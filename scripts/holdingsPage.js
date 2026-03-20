@@ -62,11 +62,11 @@ function showFetchPricesWarning() {
 
 async function fetchPrices(mode) {
   const btn = byId('fetch-prices-btn');
-  const originalText = btn.textContent;
+  const originalHTML = btn.innerHTML;
   
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '🔄 Fetching...';
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> Fetching...';
   }
   
   try {
@@ -101,7 +101,7 @@ async function fetchPrices(mode) {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = originalText;
+      btn.innerHTML = originalHTML;
     }
   }
 }
