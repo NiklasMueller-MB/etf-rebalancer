@@ -23,6 +23,16 @@ function loadRawFromStorage() {
 }
 
 export function createDefaultPortfolio(id = 'p1', name = 'Main') {
+  // Create default holdings with 100 shares for each ETF
+  const defaultHoldings = {};
+  const defaultPrices = {};
+  
+  DEF.etfs.forEach(e => {
+    defaultHoldings[e.id] = 100;
+    // Set price to 2.5 for all assets except cash (which should remain 1)
+    defaultPrices[e.id] = e.rf && !e.ticker ? 1 : 2.5;
+  });
+
   return {
     id,
     name,
@@ -35,8 +45,8 @@ export function createDefaultPortfolio(id = 'p1', name = 'Main') {
     allowSell: false,
     minBuyAmount: 250,
     minSellAmount: 250,
-    h: {},
-    manualPrices: {}
+    h: defaultHoldings,
+    manualPrices: defaultPrices
   };
 }
 
