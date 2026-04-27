@@ -77,7 +77,8 @@ function optim(ist, sol, inv, lb, ub, minBuyAmount, minSellAmount) {
     
     // For normal cases, normalize to target investment amount
     if (Math.abs(currentSum - effectiveInv) < 1e-6) return arr;
-    
+    if (currentSum === 0) return arr;
+
     const scale = effectiveInv / currentSum;
     const normalized = arr.map((v, i) => {
       const scaled = v * scale;
@@ -256,10 +257,9 @@ export function optimizeAllocation(state, priceData) {
   const sumError = inv - currentSum;
   
   if (Math.abs(sumError) > 1e-6) {
-    // Distribute error to trades that can be adjusted
-    const targetInv = (lb && lb[0] < 0 && ub && ub[0] <= 0) ? -inv : inv;
-    const canIncrease = adjustedR.map((v, i) => v > 0 && v < targetInv ? i : -1).filter(i => i >= 0);
-    const canDecrease = adjustedR.map((v, i) => v < 0 && v > targetInv ? i : -1).filter(i => i >= 0);
+    // Distribute error to trades that can be adjusted within their bounds
+    const canIncrease = adjustedR.map((v, i) => v < ub[i] ? i : -1).filter(i => i >= 0);
+    const canDecrease = adjustedR.map((v, i) => v > lb[i] ? i : -1).filter(i => i >= 0);
     
     if (sumError > 0 && canIncrease.length > 0) {
       const adjPerVar = sumError / canIncrease.length;

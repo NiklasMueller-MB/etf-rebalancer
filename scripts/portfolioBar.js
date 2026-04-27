@@ -1,5 +1,5 @@
 import { getState, setActivePortfolio, addPortfolio, removePortfolio, renamePortfolio, getActivePortfolio } from './state.js';
-import { byId } from './dom.js';
+import { byId, escHtml } from './dom.js';
 import { renderSetupPage } from './setupPage.js';
 import { renderHoldingsPage } from './holdingsPage.js';
 
@@ -21,7 +21,7 @@ export function renderPortfolioBar() {
       const isActive = p.id === activePortfolioId;
       const canClose = portfolios.length > 1;
       return `<button class="ptab${isActive ? ' active' : ''}" data-id="${p.id}" title="Click portfolio name to switch, double-click to rename">
-        <span class="ptab-label-text">${p.name}</span>
+        <span class="ptab-label-text">${escHtml(p.name)}</span>
         ${canClose ? '<span class="ptab-rename" data-action="rename" title="Rename portfolio"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></span><span class="ptab-x" data-action="close" title="Delete portfolio">×</span>' : ''}
       </button>`;
     })

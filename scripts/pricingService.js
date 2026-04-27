@@ -38,18 +38,18 @@ function isCacheValid(timestamp) {
   return Date.now() - timestamp < CACHE_DURATION_MS;
 }
 
-function getCachedPrice(ticker) {
+function getCachedPrice(source, ticker) {
   const cache = getPriceCache();
-  const entry = cache[ticker];
+  const entry = cache[`${source}:${ticker}`];
   if (entry && isCacheValid(entry.timestamp)) {
     return entry.data;
   }
   return null;
 }
 
-function setCachedPrice(ticker, priceData) {
+function setCachedPrice(source, ticker, priceData) {
   const cache = getPriceCache();
-  cache[ticker] = {
+  cache[`${source}:${ticker}`] = {
     data: priceData,
     timestamp: Date.now()
   };
@@ -191,7 +191,7 @@ function parseChart(data, ticker) {
 // ── Main Yahoo fetch: try sources sequentially, stop at first success ────────
 export async function fetchYahooPrice(ticker) {
   // Check cache first
-  const cached = getCachedPrice(ticker);
+  const cached = getCachedPrice('yahoo', ticker);
   if (cached) {
     return cached;
   }
@@ -211,8 +211,7 @@ export async function fetchYahooPrice(ticker) {
   for (const src of sources) {
     try {
       const result = await src.fn();
-      // Cache the successful result
-      setCachedPrice(ticker, result);
+      setCachedPrice('yahoo', ticker, result);
       return result;
     } catch (e) {
       errors.push(`[${src.name}] ${e.message}`);
@@ -224,7 +223,7 @@ export async function fetchYahooPrice(ticker) {
 // ── Binance — direct, no proxy needed ───────────────────────────────────────
 export async function fetchBinancePrice(symbol) {
   // Check cache first
-  const cached = getCachedPrice(symbol);
+  const cached = getCachedPrice('binance', symbol);
   if (cached) {
     return cached;
   }
@@ -245,19 +244,21 @@ export async function fetchBinancePrice(symbol) {
   const p  = parseFloat(tk.price);
   if (isNaN(p)) throw new Error(`Binance non-numeric price for ${symbol}`);
   const l3 = kl.slice(-3);
-  let aH = l3.reduce((a, k) => a + parseFloat(k[2]), 0) / l3.length;
-  let aL = l3.reduce((a, k) => a + parseFloat(k[3]), 0) / l3.length;
+  let aH = l3.length ? l3.reduce((a, k) => a + parseFloat(k[2]), 0) / l3.length : p;
+  let aL = l3.length ? l3.reduce((a, k) => a + parseFloat(k[3]), 0) / l3.length : p;
   if (aL > p) aL = p;
   if (aH < p) aH = p;
-  
+
   const result = { price: p, avgHigh: aH, avgLow: aL, currency: 'EUR' };
-  // Cache the successful result
-  setCachedPrice(symbol, result);
+  setCachedPrice('binance', symbol, result);
   return result;
 }
 
 // ── fetchAllPrices — main entry point ───────────────────────────────────────
 export async function fetchAllPrices(etfs) {
+  if (!etfs || !etfs.length) {
+    return { pricesById: {}, hiById: {}, loById: {}, currenciesById: {}, infoLines: [], failedFetches: [], hasErrors: false };
+  }
   const pricesById     = {};
   const hiById         = {};
   const loById         = {};

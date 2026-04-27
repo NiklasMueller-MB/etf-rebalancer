@@ -115,11 +115,16 @@ function createInitialAppState() {
   return { portfolios: [p], activePortfolioId: 'p1' };
 }
 
+let _storageWarnShown = false;
+
 export function saveStateToStorage(state) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // ignore
+  } catch (e) {
+    if (!_storageWarnShown) {
+      _storageWarnShown = true;
+      console.warn('localStorage unavailable — portfolio changes will not be saved:', e.message);
+    }
   }
 }
 
@@ -144,9 +149,16 @@ export function getActivePortfolio() {
   const { portfolios, activePortfolioId } = appState;
   let p = portfolios.find(pf => pf.id === activePortfolioId);
   if (!p) {
-    p = portfolios[0] || createDefaultPortfolio('p1', 'Main');
+    if (portfolios.length > 0) {
+      p = portfolios[0];
+      appState = { ...appState, activePortfolioId: p.id };
+      saveStateToStorage(appState);
+    } else {
+      p = createDefaultPortfolio('p1', 'Main');
+      appState = { portfolios: [p], activePortfolioId: 'p1' };
+      saveStateToStorage(appState);
+    }
   }
-  // Ensure manualPrices is always available
   if (!p.manualPrices) {
     p.manualPrices = {};
   }
@@ -172,9 +184,13 @@ export function updateActivePortfolio(updater) {
 export function addPortfolio(name) {
   return setState(prev => {
     if (prev.portfolios.length >= MAX_PORTFOLIOS) return prev;
-    const idx = prev.portfolios.length + 1;
-    const id = `p${idx}`;
-    const portfolio = createDefaultPortfolio(id, name || `Portfolio ${idx}`);
+    const maxIdx = prev.portfolios.reduce((max, p) => {
+      const n = parseInt(p.id.replace('p', ''), 10);
+      return isNaN(n) ? max : Math.max(max, n);
+    }, 0);
+    const id = `p${maxIdx + 1}`;
+    const displayIdx = prev.portfolios.length + 1;
+    const portfolio = createDefaultPortfolio(id, name || `Portfolio ${displayIdx}`);
     const portfolios = [...prev.portfolios, portfolio];
     return { ...prev, portfolios, activePortfolioId: id };
   });

@@ -42,91 +42,89 @@ function goBackToHoldings() {
   renderHoldingsPage();
 }
 
+async function buildPriceData(portfolio) {
+  const priceData = {
+    pricesById: {},
+    hiById: {},
+    loById: {},
+    currenciesById: {},
+    infoLines: [],
+    failedFetches: [],
+    hasErrors: false
+  };
+
+  portfolio.etfs.forEach(e => {
+    if (!e.ticker && e.rf) {
+      priceData.pricesById[e.id] = 1;
+      priceData.hiById[e.id] = 1;
+      priceData.loById[e.id] = 1;
+      priceData.currenciesById[e.id] = 'EUR';
+      priceData.infoLines.push(`${e.name}: cash (€1.00)`);
+    } else if (portfolio.manualPrices[e.id] !== undefined) {
+      const price = portfolio.manualPrices[e.id] || 0;
+      priceData.pricesById[e.id] = price;
+      priceData.hiById[e.id] = price;
+      priceData.loById[e.id] = price;
+      priceData.currenciesById[e.id] = 'EUR';
+      if (price > 0) {
+        priceData.infoLines.push(`${e.name} (${e.ticker}): €${price.toFixed(2)} (manual)`);
+      } else {
+        priceData.infoLines.push(`${e.name} (${e.ticker}): no price (no holdings)`);
+      }
+    }
+  });
+
+  const etfsWithHoldings = portfolio.etfs.filter(e =>
+    e.ticker && !e.rf && !portfolio.manualPrices[e.id] && (portfolio.h[e.id] || 0) > 0
+  );
+
+  if (etfsWithHoldings.length > 0) {
+    const fetchedData = await fetchAllPrices(etfsWithHoldings);
+    Object.assign(priceData.pricesById, fetchedData.pricesById);
+    Object.assign(priceData.hiById, fetchedData.hiById);
+    Object.assign(priceData.loById, fetchedData.loById);
+    Object.assign(priceData.currenciesById, fetchedData.currenciesById);
+    priceData.infoLines.push(...fetchedData.infoLines);
+    if (fetchedData.hasErrors) {
+      priceData.failedFetches.push(...fetchedData.failedFetches);
+      priceData.hasErrors = true;
+    }
+  }
+
+  portfolio.etfs.forEach(e => {
+    if (e.ticker && !e.rf && priceData.pricesById[e.id] === undefined) {
+      priceData.pricesById[e.id] = 0;
+      priceData.hiById[e.id] = 0;
+      priceData.loById[e.id] = 0;
+      priceData.currenciesById[e.id] = 'EUR';
+      priceData.infoLines.push(`${e.name} (${e.ticker}): no price (no holdings)`);
+    }
+  });
+
+  return priceData;
+}
+
 async function onViewComparison() {
   const btn = byId('view-comparison');
   const sp = byId('fs');
-  const currentPortfolio = getActivePortfolio();
-  
+
   if (btn) btn.disabled = true;
   if (sp) sp.style.display = 'inline-block';
 
   try {
     const portfolio = getActivePortfolio();
-    
-    // Start with manual prices
-    let priceData = {
-      pricesById: {},
-      hiById: {},
-      loById: {},
-      currenciesById: {},
-      infoLines: [],
-      failedFetches: [],
-      hasErrors: false
-    };
-    
-    // Set manual prices and default values for cash
-    portfolio.etfs.forEach(e => {
-      if (!e.ticker && e.rf) {
-        priceData.pricesById[e.id] = 1;
-        priceData.hiById[e.id] = 1;
-        priceData.loById[e.id] = 1;
-        priceData.currenciesById[e.id] = 'EUR';
-        priceData.infoLines.push(`${e.name}: cash (€1.00)`);
-      } else if (portfolio.manualPrices[e.id] !== undefined) {
-        const price = portfolio.manualPrices[e.id] || 0; // Allow 0 prices
-        priceData.pricesById[e.id] = price;
-        priceData.hiById[e.id] = price;
-        priceData.loById[e.id] = price;
-        priceData.currenciesById[e.id] = 'EUR';
-        if (price > 0) {
-          priceData.infoLines.push(`${e.name} (${e.ticker}): €${price.toFixed(2)} (manual)`);
-        } else {
-          priceData.infoLines.push(`${e.name} (${e.ticker}): no price (no holdings)`);
-        }
-      }
-    });
-    
-    // Fetch missing prices only for ETFs with holdings
-    const etfsWithHoldings = portfolio.etfs.filter(e => 
-      e.ticker && !e.rf && !portfolio.manualPrices[e.id] && (portfolio.h[e.id] || 0) > 0
-    );
-    
-    if (etfsWithHoldings.length > 0) {
-      const fetchedData = await fetchAllPrices(etfsWithHoldings);
-      
-      // Merge fetched data with manual prices
-      Object.assign(priceData.pricesById, fetchedData.pricesById);
-      Object.assign(priceData.hiById, fetchedData.hiById);
-      Object.assign(priceData.loById, fetchedData.loById);
-      Object.assign(priceData.currenciesById, fetchedData.currenciesById);
-      priceData.infoLines.push(...fetchedData.infoLines);
-      
-      if (fetchedData.hasErrors) {
-        priceData.failedFetches.push(...fetchedData.failedFetches);
-        priceData.hasErrors = true;
-      }
+    const priceData = await buildPriceData(portfolio);
+
+    if (priceData.hasErrors && priceData.failedFetches.length > 0) {
+      const failedNames = priceData.failedFetches.map(f => f.etf.name).join(', ');
+      alert(`Could not fetch prices for: ${failedNames}\n\nShowing cached or manual prices where available.`);
     }
-    
-    // Set default price (0) for ETFs without holdings and no manual price
-    portfolio.etfs.forEach(e => {
-      if (e.ticker && !e.rf && priceData.pricesById[e.id] === undefined) {
-        priceData.pricesById[e.id] = 0;
-        priceData.hiById[e.id] = 0;
-        priceData.loById[e.id] = 0;
-        priceData.currenciesById[e.id] = 'EUR';
-        priceData.infoLines.push(`${e.name} (${e.ticker}): no price (no holdings)`);
-      }
-    });
-    
+
     setHTML(
       'pi',
       priceData.infoLines.map(p => `<div>${p}</div>`).join('')
     );
-    
-    // Store price data for later use in optimization
-    window.currentPriceData = priceData;
-    
-    // Show comparison without optimization
+
     renderComparisonOnly(portfolio, priceData);
     renderInvestmentSettings();
     showPage(3);
@@ -174,15 +172,7 @@ async function onOptimize() {
 
   try {
     const portfolio = getActivePortfolio();
-    
-    // Use stored price data or fetch if not available
-    let priceData = window.currentPriceData;
-    if (!priceData) {
-      // Fallback: fetch prices again
-      priceData = await fetchAllPrices(portfolio.etfs);
-      window.currentPriceData = priceData;
-    }
-    
+    const priceData = await buildPriceData(portfolio);
     const result = optimizeAllocation(portfolio, priceData);
     renderResultsPage(result);
     

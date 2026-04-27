@@ -1,4 +1,4 @@
-import { byId, setHTML } from './dom.js';
+import { byId, setHTML, escHtml } from './dom.js';
 import { getActivePortfolio, updateActivePortfolio } from './state.js';
 import { validateAndParseNumber, showInputError, hideInputError } from './validation.js';
 
@@ -44,7 +44,7 @@ export function renderComparisonOnly(portfolio, priceData) {
     .map(e => {
       const i = etfs.indexOf(e);
       const cur = tot > 0 ? (ist[i] / tot) * 100 : 0;
-      const tgt = sol[i] / ft * 100;
+      const tgt = ft > 0 ? sol[i] / ft * 100 : 0;
       const dr = cur - tgt;
       const db =
         Math.abs(dr) < 0.5
@@ -56,8 +56,8 @@ export function renderComparisonOnly(portfolio, priceData) {
       const bw = Math.min(100, (Math.abs(dr) / 20) * 100);
       const price = pr[e.id];
       const priceStr = e.rf && !e.ticker ? '—' : (price && !isNaN(price) ? `${price.toFixed(2)} ${cu[e.id] || ''}` : '—');
-      return `<tr><td style="font-weight:500">${e.name}</td><td class="hs"><span class="cat">${
-        e.cat || ''
+      return `<tr><td style="font-weight:500">${escHtml(e.name)}</td><td class="hs"><span class="cat">${
+        escHtml(e.cat || '')
       }</span></td><td class="mono">${priceStr}</td><td>${cur.toFixed(
         1
       )}%</td><td>${tgt.toFixed(1)}%</td><td>${db}</td><td class="hs"><div class="bw"><div class="bf" style="width:${bw}%;background:${bc}"></div></div></td></tr>`;
@@ -114,7 +114,7 @@ function renderChart(ord, etfs, ist, tot, sol, ft) {
             label: 'Target %',
             data: ce.map(e => {
               const i = etfs.indexOf(e);
-              return +((sol[i] / ft * 100).toFixed(2));
+              return ft > 0 ? +((sol[i] / ft * 100).toFixed(2)) : 0;
             }),
             backgroundColor: '#1D9E75',
             borderRadius: 3
@@ -164,7 +164,7 @@ export function renderResultsPage(data) {
     .map(e => {
       const i = etfs.indexOf(e);
       const cur = tot > 0 ? (ist[i] / tot) * 100 : 0;
-      const tgt = sol[i] / ft * 100;
+      const tgt = ft > 0 ? sol[i] / ft * 100 : 0;
       const dr = cur - tgt;
       const db =
         Math.abs(dr) < 0.5
@@ -176,8 +176,8 @@ export function renderResultsPage(data) {
       const bw = Math.min(100, (Math.abs(dr) / 20) * 100);
       const price = pr[e.id];
       const priceStr = e.rf && !e.ticker ? '—' : (price && !isNaN(price) ? `${price.toFixed(2)} ${cu[e.id] || ''}` : '—');
-      return `<tr><td style="font-weight:500">${e.name}</td><td class="hs"><span class="cat">${
-        e.cat || ''
+      return `<tr><td style="font-weight:500">${escHtml(e.name)}</td><td class="hs"><span class="cat">${
+        escHtml(e.cat || '')
       }</span></td><td class="mono">${priceStr}</td><td>${cur.toFixed(
         1
       )}%</td><td>${tgt.toFixed(1)}%</td><td>${db}</td><td class="hs"><div class="bw"><div class="bf" style="width:${bw}%;background:${bc}"></div></div></td></tr>`;
@@ -220,7 +220,7 @@ export function renderResultsPage(data) {
             label: 'Target %',
             data: ce.map(e => {
               const i = etfs.indexOf(e);
-              return +((sol[i] / ft * 100).toFixed(2));
+              return ft > 0 ? +((sol[i] / ft * 100).toFixed(2)) : 0;
             }),
             backgroundColor: '#1D9E75',
             borderRadius: 3
@@ -259,14 +259,14 @@ export function renderResultsPage(data) {
       if (Math.abs(amt) < 0.5) {
         const price = pr[e.id];
         const priceStr = e.rf && !e.ticker ? '—' : (price && !isNaN(price) ? '€' + price.toFixed(2) : '—');
-        return `<tr><td style="font-weight:500">${e.name}</td><td><span class="badge bx">Hold</span></td><td style="color:var(--text3)">—</td><td style="color:var(--text3)">—</td><td class="mono" style="color:var(--text2)">${priceStr}</td></tr>`;
+        return `<tr><td style="font-weight:500">${escHtml(e.name)}</td><td><span class="badge bx">Hold</span></td><td style="color:var(--text3)">—</td><td style="color:var(--text3)">—</td><td class="mono" style="color:var(--text2)">${priceStr}</td></tr>`;
       }
       const buy = amt > 0;
       const price = pr[e.id];
       const units = price && !isNaN(price) && price > 0 ? Math.abs(amt) / price : 0;
       const limPrice = buy ? lo[e.id] : hi[e.id];
       const lim = limPrice && !isNaN(limPrice) ? limPrice : 0;
-      return `<tr><td style="font-weight:500">${e.name}</td><td><span class="badge ${
+      return `<tr><td style="font-weight:500">${escHtml(e.name)}</td><td><span class="badge ${
         buy ? 'bg' : 'br'
       }">${buy ? 'Buy' : 'Sell'}</span></td><td style="font-weight:500">€${Math.abs(
         amt

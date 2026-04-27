@@ -20,6 +20,14 @@ export function setHTML(id, html) {
   if (el) el.innerHTML = html;
 }
 
+export function escHtml(s) {
+  return (s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export function showPage(n) {
   qsa('.page').forEach(p => p.classList.remove('active'));
   const page = byId(`p${n}`);

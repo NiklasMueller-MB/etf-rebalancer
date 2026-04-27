@@ -66,7 +66,7 @@ function onTableInput(ev) {
   const tr = target.closest('tr');
   if (!tr) return;
   const id = Number(tr.dataset.id);
-  if (!id) return;
+  if (isNaN(id)) return;
 
   if (field === 'tgt') {
     // Validate target percentage
@@ -109,7 +109,7 @@ function onTableClick(ev) {
   const tr = target.closest('tr');
   if (!tr) return;
   const id = Number(tr.dataset.id);
-  if (!id) return;
+  if (isNaN(id)) return;
 
   updateActivePortfolio(prev => {
     const etf = prev.etfs.find(e => e.id === id);

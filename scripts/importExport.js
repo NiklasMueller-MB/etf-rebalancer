@@ -12,6 +12,12 @@ export function exportPortfolioData() {
       name: portfolio.name,
       riskPercentage: portfolio.rp,
       mode: portfolio.mode,
+      inv: portfolio.inv,
+      allowBuy: portfolio.allowBuy,
+      allowSell: portfolio.allowSell,
+      minBuyAmount: portfolio.minBuyAmount,
+      minSellAmount: portfolio.minSellAmount,
+      manualPrices: portfolio.manualPrices || {},
       etfs: portfolio.etfs.map(etf => ({
         id: etf.id,
         isin: etf.isin,
@@ -59,9 +65,14 @@ export function importPortfolioData(file) {
             id: portfolio.id,
             name: portfolio.name,
             rp: portfolio.riskPercentage || 100,
-            nid: 20,
+            nid: portfolio.etfs.reduce((max, e) => Math.max(max, e.id), 0) + 1,
             mode: portfolio.mode || 'onetime',
-            inv: portfolio.defaultInvestment || 500,
+            inv: portfolio.inv ?? 500,
+            allowBuy: portfolio.allowBuy ?? true,
+            allowSell: portfolio.allowSell ?? false,
+            minBuyAmount: portfolio.minBuyAmount ?? 250,
+            minSellAmount: portfolio.minSellAmount ?? 250,
+            manualPrices: portfolio.manualPrices || {},
             etfs: portfolio.etfs.map(etf => ({
               id: etf.id,
               isin: etf.isin,
@@ -74,7 +85,7 @@ export function importPortfolioData(file) {
             })),
             h: portfolio.holdings || {}
           })),
-          activePortfolioId: importData.activePortfolioId || importData.portfolios[0]?.id || 'p1'
+          activePortfolioId: importData.activePortfolioId || importData.portfolios[0]?.id
         };
 
         setState(newState);

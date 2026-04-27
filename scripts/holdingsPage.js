@@ -1,5 +1,5 @@
 import { getActivePortfolio, updateActivePortfolio } from './state.js';
-import { byId, setHTML } from './dom.js';
+import { byId, setHTML, escHtml } from './dom.js';
 import { validateAndParseNumber, showInputError, hideInputError } from './validation.js';
 import { fetchAllPrices } from './pricingService.js';
 
@@ -134,8 +134,8 @@ function renderHoldingsTable() {
     const badgeClass = e.rf ? 'bt' : 'bb';
     const typeLabel = e.rf ? 'Risk-free' : 'Risky';
     return `<tr data-id="${e.id}">
-      <td><span style="font-weight:500">${e.name}</span><br><span class="cat">${e.cat || ''}</span></td>
-      <td class="hs mono">${e.ticker || '—'}</td>
+      <td><span style="font-weight:500">${escHtml(e.name)}</span><br><span class="cat">${escHtml(e.cat || '')}</span></td>
+      <td class="hs mono">${escHtml(e.ticker) || '—'}</td>
       <td class="hs"><span class="badge ${badgeClass}">${typeLabel}</span></td>
       <td><input type="number" class="ism" min="0" step="any" style="width:110px" value="${held}" data-field="held"></td>
       <td><input type="number" class="ism price-input${e.rf && !e.ticker ? ' readonly' : ''}" min="0" step="0.01" style="width:100px" value="${manualPrice}" placeholder="0.00" data-field="price" ${e.rf && !e.ticker ? 'readonly' : ''}></td>
@@ -182,7 +182,7 @@ export function initHoldingsPage() {
       const tr = target.closest('tr');
       if (!tr) return;
       const id = Number(tr.dataset.id);
-      if (!id) return;
+      if (isNaN(id)) return;
       
       // Validate the holdings input
       const validation = validateAndParseNumber(target.value, { min: 0 });
@@ -203,10 +203,10 @@ export function initHoldingsPage() {
       const tr = target.closest('tr');
       if (!tr) return;
       const id = Number(tr.dataset.id);
-      if (!id) return;
-      
+      if (isNaN(id)) return;
+
       // Don't allow editing of cash/risk-free prices (they should remain 1)
-      const etf = state.etfs.find(e => e.id === id);
+      const etf = getActivePortfolio().etfs.find(e => e.id === id);
       if (etf && etf.rf && !etf.ticker) {
         return; // Skip editing for cash assets
       }
