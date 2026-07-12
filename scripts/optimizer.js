@@ -236,32 +236,53 @@ export function optimizeAllocation(state, priceData) {
   }
   
   const r = optim(ist, sol, inv, lb, ub, minBuyAmount, minSellAmount);
-  
-  // Post-process to round to valid discrete states (0 or >= minimum)
-  const adjustedR = r.map((amount, i) => {
+
+  // Round a single trade to a valid discrete state: 0, or >= minBuyAmount (buy)
+  // / <= -minSellAmount (sell). This is the only place the min-trade
+  // constraint is enforced, so it must run after every redistribution below,
+  // not just once.
+  function snapToValidState(amount) {
     if (amount > 0 && amount < minBuyAmount) {
-      // Round small buy to nearest valid state (0 or minBuyAmount)
       const targetWithZero = Math.abs(amount - 0);
       const targetWithMin = Math.abs(amount - minBuyAmount);
       return targetWithZero <= targetWithMin ? 0 : minBuyAmount;
     } else if (amount < 0 && Math.abs(amount) < minSellAmount) {
-      // Round small sell to nearest valid state (0 or -minSellAmount)
       const targetWithZero = Math.abs(amount - 0);
       const targetWithMin = Math.abs(amount + minSellAmount);
       return targetWithZero <= targetWithMin ? 0 : -minSellAmount;
     }
     return amount;
-  });
-  
-  // Adjust to maintain sum constraint exactly
-  const currentSum = adjustedR.reduce((a, v) => a + v, 0);
-  const sumError = inv - currentSum;
-  
-  if (Math.abs(sumError) > 1e-6) {
-    // Distribute error to trades that can be adjusted within their bounds
-    const canIncrease = adjustedR.map((v, i) => v < ub[i] ? i : -1).filter(i => i >= 0);
-    const canDecrease = adjustedR.map((v, i) => v > lb[i] ? i : -1).filter(i => i >= 0);
-    
+  }
+
+  let adjustedR = r.map(snapToValidState);
+
+  // Snapping to discrete states breaks sum(r) === inv. Redistribute the
+  // leftover only among trades that are already a valid nonzero trade
+  // (never among 0-valued ones — that would manufacture a new below-minimum
+  // trade), then re-snap since an adjustment can itself push a trade back
+  // below its minimum. Iterate until the sum matches or nothing can absorb
+  // the remainder without violating the minimum-trade constraint, in which
+  // case investing slightly less/more than requested is preferred over an
+  // invalid trade.
+  const maxSnapPasses = 20;
+  for (let pass = 0; pass < maxSnapPasses; pass++) {
+    const currentSum = adjustedR.reduce((a, v) => a + v, 0);
+    const sumError = inv - currentSum;
+    if (Math.abs(sumError) <= 1e-6) break;
+
+    // A trade can absorb part of the remainder in either direction as long
+    // as it's already a valid nonzero trade (buy >= minBuyAmount or
+    // sell <= -minSellAmount) — moving it further from 0 or back toward 0
+    // both get re-validated by snapToValidState right after. Never touch a
+    // trade that's currently 0; that would manufacture a new invalid trade.
+    const isValidNonzero = v => v >= minBuyAmount || v <= -minSellAmount;
+    const canIncrease = adjustedR
+      .map((v, i) => (v < ub[i] && isValidNonzero(v)) ? i : -1)
+      .filter(i => i >= 0);
+    const canDecrease = adjustedR
+      .map((v, i) => (v > lb[i] && isValidNonzero(v)) ? i : -1)
+      .filter(i => i >= 0);
+
     if (sumError > 0 && canIncrease.length > 0) {
       const adjPerVar = sumError / canIncrease.length;
       canIncrease.forEach(i => {
@@ -272,7 +293,17 @@ export function optimizeAllocation(state, priceData) {
       canDecrease.forEach(i => {
         adjustedR[i] += adjPerVar;
       });
+    } else {
+      break;
     }
+
+    adjustedR = adjustedR.map(snapToValidState);
+
+    // Stall detection: if snapping undid the entire redistribution (e.g. a
+    // reduced buy snaps straight back to its old value), further passes
+    // would just repeat the same cycle — stop and accept the residual.
+    const newSum = adjustedR.reduce((a, v) => a + v, 0);
+    if (Math.abs(newSum - currentSum) <= 1e-6) break;
   }
 
   return {
