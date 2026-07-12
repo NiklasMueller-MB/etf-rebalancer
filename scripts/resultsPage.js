@@ -22,11 +22,15 @@ export function renderComparisonOnly(portfolio, priceData) {
   // Calculate current values
   const ist = etfs.map(e => (h[e.id] || 0) * (pr[e.id] || 0));
   const tot = ist.reduce((a, b) => a + b, 0);
-  
-  // Calculate target values (without investment)
+
+  // Calculate target values (without investment), split risky/risk-free by rp — same weighting as optimizer.js
+  const rp = portfolio.riskyOnly ? 1 : portfolio.rp;
+  const hasCrypto = etfs.some(e => e.cr && (h[e.id] || 0) > 0);
+  const cs = hasCrypto ? 1 / 1.05 : 1;
+  const allHoldingsZero = tot === 0;
   const sol = etfs.map(e => {
-    const targetValue = tot * (e.tgt / 100);
-    return targetValue;
+    if (e.rf) return allHoldingsZero ? 0 : (e.tgt / 100) * (1 - rp) * tot;
+    return (e.tgt / 100) * rp * cs * tot;
   });
   const ft = sol.reduce((a, b) => a + b, 0);
 
