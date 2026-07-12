@@ -177,9 +177,10 @@ function optim(ist, sol, inv, lb, ub, minBuyAmount, minSellAmount) {
 export { optim };
 
 export function optimizeAllocation(state, priceData) {
-  const etfs = state.etfs;
+  const riskyOnly = !!state.riskyOnly;
+  const etfs = riskyOnly ? state.etfs.filter(e => !e.rf) : state.etfs;
   const inv = state.inv;
-  const rp = state.rp;
+  const rp = riskyOnly ? 1 : state.rp;
   const mode = state.mode;
   const allowBuy = state.allowBuy ?? true;
   const allowSell = state.allowSell ?? false;
@@ -277,12 +278,13 @@ export function optimizeAllocation(state, priceData) {
   return {
     etfs,
     inv,
-    rp,
+    rp: state.rp,
     mode,
     allowBuy,
     allowSell,
     minBuyAmount,
     minSellAmount,
+    riskyOnly,
     ist,
     tot,
     ft,

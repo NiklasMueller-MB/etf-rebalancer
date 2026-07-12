@@ -45,6 +45,7 @@ export function createDefaultPortfolio(id = 'p1', name = 'Main') {
     allowSell: false,
     minBuyAmount: 250,
     minSellAmount: 250,
+    riskyOnly: false,
     h: defaultHoldings,
     manualPrices: defaultPrices
   };
@@ -71,6 +72,9 @@ function migrateLegacy(raw) {
       if (portfolio.minSellAmount === undefined) {
         portfolio.minSellAmount = 250;
       }
+      if (portfolio.riskyOnly === undefined) {
+        portfolio.riskyOnly = false;
+      }
     });
     return raw;
   }
@@ -87,6 +91,7 @@ function migrateLegacy(raw) {
       allowSell: raw.allowSell ?? false,
       minBuyAmount: raw.minBuyAmount ?? 250,
       minSellAmount: raw.minSellAmount ?? 250,
+      riskyOnly: raw.riskyOnly ?? false,
       h: raw.h ?? {},
       manualPrices: raw.manualPrices ?? {}
     };

@@ -3,6 +3,7 @@ import { getActivePortfolio, updateActivePortfolio } from './state.js';
 import { validateAndParseNumber, showInputError, hideInputError } from './validation.js';
 
 let chartInstance = null;
+let lastPriceData = null;
 
 function f(n) {
   return n.toLocaleString('de-DE', {
@@ -12,7 +13,9 @@ function f(n) {
 }
 
 export function renderComparisonOnly(portfolio, priceData) {
-  const { etfs, manualPrices, h } = portfolio;
+  lastPriceData = priceData;
+  const { manualPrices, h } = portfolio;
+  const etfs = portfolio.riskyOnly ? portfolio.etfs.filter(e => !e.rf) : portfolio.etfs;
   const pr = priceData.pricesById;
   const cu = priceData.currenciesById;
   
@@ -140,7 +143,13 @@ function renderChart(ord, etfs, ist, tot, sol, ft) {
 }
 
 export function renderResultsPage(data) {
-  const { etfs, inv, rp, mode, ist, tot, ft, sol, r, pr, hi, lo, cu } = data;
+  const { etfs, inv, rp, mode, ist, tot, ft, sol, r, pr, hi, lo, cu, riskyOnly } = data;
+
+  const riskTile = riskyOnly
+    ? `<div class="mc"><div class="ml">Risky / risk-free</div><div class="mv" style="font-size:16px">Risky only</div><div class="ms">risk-free excluded</div></div>`
+    : `<div class="mc"><div class="ml">Risky / risk-free</div><div class="mv" style="font-size:16px">${(
+        rp * 100
+      ).toFixed(0)}% / ${((1 - rp) * 100).toFixed(0)}%</div><div class="ms">target split</div></div>`;
 
   setHTML(
     'sm',
@@ -151,9 +160,7 @@ export function renderResultsPage(data) {
     <div class="mc"><div class="ml">After investment</div><div class="mv">€${f(
       tot + inv
     )}</div><div class="ms">+€${f(inv)}</div></div>
-    <div class="mc"><div class="ml">Risky / risk-free</div><div class="mv" style="font-size:16px">${(
-      rp * 100
-    ).toFixed(0)}% / ${((1 - rp) * 100).toFixed(0)}%</div><div class="ms">target split</div></div>
+    ${riskTile}
     <div class="mc"><div class="ml">Mode</div><div class="mv" style="font-size:14px;padding-top:4px">${
       mode === 'onetime' ? 'One-time' : 'Savings'
     }</div><div class="ms">€${f(inv)}${mode === 'savings' ? '/mo' : ''}</div></div>`
@@ -288,6 +295,15 @@ export function initInvestmentSettings() {
   const minSell = byId('min-sell');
   const onetimeOptions = byId('onetime-options');
   const tradingWarning = byId('trading-warning');
+  const riskyOnly = byId('risky-only');
+
+  riskyOnly?.addEventListener('change', () => {
+    const checked = riskyOnly.checked;
+    updateActivePortfolio(prev => ({ ...prev, riskyOnly: checked }));
+    if (lastPriceData) {
+      renderComparisonOnly(getActivePortfolio(), lastPriceData);
+    }
+  });
 
   to?.addEventListener('click', () => {
     updateActivePortfolio(prev => ({ ...prev, mode: 'onetime' }));
@@ -407,7 +423,10 @@ export function renderInvestmentSettings() {
   
   const minSell = byId('min-sell');
   if (minSell) minSell.value = state.minSellAmount ?? 250;
-  
+
+  const riskyOnly = byId('risky-only');
+  if (riskyOnly) riskyOnly.checked = state.riskyOnly ?? false;
+
   // Validate trading options after setting values
   const tradingWarning = byId('trading-warning');
   if (tradingWarning && allowBuy && allowSell) {

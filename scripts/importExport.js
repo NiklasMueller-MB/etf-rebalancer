@@ -17,6 +17,7 @@ export function exportPortfolioData() {
       allowSell: portfolio.allowSell,
       minBuyAmount: portfolio.minBuyAmount,
       minSellAmount: portfolio.minSellAmount,
+      riskyOnly: portfolio.riskyOnly ?? false,
       manualPrices: portfolio.manualPrices || {},
       etfs: portfolio.etfs.map(etf => ({
         id: etf.id,
@@ -72,6 +73,7 @@ export function importPortfolioData(file) {
             allowSell: portfolio.allowSell ?? false,
             minBuyAmount: portfolio.minBuyAmount ?? 250,
             minSellAmount: portfolio.minSellAmount ?? 250,
+            riskyOnly: portfolio.riskyOnly ?? false,
             manualPrices: portfolio.manualPrices || {},
             etfs: portfolio.etfs.map(etf => ({
               id: etf.id,
